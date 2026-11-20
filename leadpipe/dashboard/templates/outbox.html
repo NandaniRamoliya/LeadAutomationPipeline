@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Outbox · Lead Pipeline{% endblock %}
+{% block content %}
+<div class="row" style="justify-content:space-between">
+  <h1>Outbox: {{ rows|length }} waiting for your OK</h1>
+  {% if rows %}<form method="post" action="{{ url_for('approve_all') }}"><input type="hidden" name="_csrf" value="{{ csrf }}">
+    <button class="primary" onclick="return confirm('Approve every outreach email that passed all checks?')">Approve all passing outreach</button></form>{% endif %}
+</div>
+<p class="muted small">Read each email as if you were the business owner. Edit anything that sounds off. Approved emails go out one by one, inside the recipient's office hours, within your daily cap. Replies to people always come first.</p>
+
+{% for m in rows %}
+{% set issues = jloads(m.check_issues, []) %}
+<form class="msg" method="post">
+  <input type="hidden" name="_csrf" value="{{ csrf }}">
+  <div class="msg-head">
+    {% if m.kind == 'reply' %}<span class="pill bad">REPLY</span>{% elif m.kind == 'onboarding' %}<span class="pill ok">ONBOARDING · {{ m.purpose }}</span>{% else %}<span class="pill acc">{{ m.sequence }} · step {{ (m.step or 0) + 1 }} · {{ m.purpose }}</span>{% endif %}
+    <a href="{{ url_for('contact', cid=m.contact_id) }}"><b>{{ m.company or '?' }}</b></a>
+    <span class="muted small">{{ m.full_name or '' }} &lt;{{ m.email }}&gt;</span>
+    <span class="muted small">· sends {{ m.scheduled_for|ago }}</span>
+    <span class="muted small">· {{ m.generator }}</span>
+    {% if m.needs_human %}<span class="pill warn">needs you</span>{% endif %}
+  </div>
+  <div class="msg-body">
+    <input name="subject" value="{{ m.subject or '' }}" placeholder="Subject">
+    <textarea name="body" style="margin-top:8px">{{ m.body }}</textarea>
+    <div class="small muted">Signature, postal address and opt-out line are added automatically when sent.</div>
+    {% if issues %}<ul class="issues">{% for i in issues %}<li class="{{ i.level }}">{{ '⛔' if i.level=='block' else '⚠️' }} {{ i.detail }}</li>{% endfor %}</ul>{% endif %}
+    <div class="row" style="margin-top:10px">
+      <button class="primary" formaction="{{ url_for('outbox_action', mid=m.id, action='approve') }}">Approve</button>
+      <button formaction="{{ url_for('outbox_action', mid=m.id, action='save') }}">Save edits</button>
+      {% if m.kind == 'sequence' %}
+      <button formaction="{{ url_for('outbox_action', mid=m.id, action='reject') }}">Rewrite</button>
+      <button formaction="{{ url_for('outbox_action', mid=m.id, action='skip') }}">Skip this step</button>
+      {% else %}
+      <button formaction="{{ url_for('outbox_action', mid=m.id, action='discard') }}">Discard</button>
+      {% endif %}
+      <button class="danger" formaction="{{ url_for('outbox_action', mid=m.id, action='stop') }}">Stop emailing them</button>
+    </div>
+  </div>
+</form>
+{% else %}
+<div class="card muted">Nothing to review. New drafts appear here automatically.</div>
+{% endfor %}
+
+{% if approved %}
+<h2>Approved, waiting for their send window ({{ approved|length }})</h2>
+<div class="table-wrap"><table>
+  <tr><th>Company</th><th>To</th><th>Subject</th><th>Earliest</th><th></th></tr>
+  {% for a in approved %}<tr><td>{{ a.company }}</td><td class="small">{{ a.to_addr }}</td><td>{{ a.subject }}</td><td class="small">{{ a.scheduled_for|ago }}</td>
+  <td><form class="inline" method="post" action="{{ url_for('unapprove', mid=a.id) }}"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="small">Un-approve</button></form></td></tr>{% endfor %}
+</table></div>
+{% endif %}
+{% endblock %}

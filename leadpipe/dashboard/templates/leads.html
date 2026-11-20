@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Leads · Lead Pipeline{% endblock %}
+{% block content %}
+<h1>Leads (companies)</h1>
+<form class="row" method="get" style="margin-bottom:12px">
+  <input name="q" value="{{ q }}" placeholder="Search name, website, category" style="max-width:320px">
+  <select name="status" style="max-width:180px"><option value="">all statuses</option>
+    {% for s in ['new','qualified','disqualified','error'] %}<option value="{{ s }}" {{ 'selected' if s==status }}>{{ s }} ({{ counts.get(s, 0) }})</option>{% endfor %}
+  </select><button>Filter</button>
+</form>
+<div class="table-wrap"><table>
+  <tr><th>Score</th><th>Company</th><th>Category</th><th>Problems found</th><th>Status</th><th>Contacts</th></tr>
+  {% for c in rows %}
+  <tr>
+    <td><b>{{ '%.0f'|format(c.score or 0) }}</b></td>
+    <td><a href="{{ url_for('company', cid=c.id) }}"><b>{{ c.name }}</b></a><div class="small muted">{{ c.website or c.instagram or c.phone or '' }}</div></td>
+    <td class="small">{{ c.category or '' }}<div class="muted">{{ c.city or '' }}</div></td>
+    <td class="small">{% for p in jloads(c.problems, [])[:2] %}<div>• {{ p }}</div>{% endfor %}</td>
+    <td><span class="pill {{ 'ok' if c.status=='qualified' else ('bad' if c.status in ('disqualified','error') else '') }}">{{ c.status }}</span><div class="small muted">{{ c.status_reason or '' }}</div></td>
+    <td class="small">{{ c.n_contacts }}<div class="muted">{{ c.stages or '' }}</div></td>
+  </tr>
+  {% else %}<tr><td colspan="6" class="muted">No companies yet.</td></tr>{% endfor %}
+</table></div>
+{% endblock %}

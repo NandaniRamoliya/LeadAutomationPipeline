@@ -1,0 +1,20 @@
+# systemd unit: runs the pipeline 24/7 on a Linux server and restarts it if it crashes.
+#   sudo cp deploy/leadpipe.service /etc/systemd/system/
+#   (edit User= and the paths below)
+#   sudo systemctl daemon-reload && sudo systemctl enable --now leadpipe
+#   journalctl -u leadpipe -f        # live logs
+[Unit]
+Description=LeadAutomationPipeline (24/7 lead engine + dashboard)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=ubuntu
+WorkingDirectory=/home/ubuntu/LeadAutomationPipeline
+ExecStart=/home/ubuntu/LeadAutomationPipeline/.venv/bin/leadpipe start
+Restart=always
+RestartSec=20
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

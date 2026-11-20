@@ -1,0 +1,6 @@
+# Optional: expose the dashboard on your own domain with automatic HTTPS (https://caddyserver.com).
+# Needed for one-click unsubscribe links and the calendar booking webhook.
+# Set dashboard.public_base_url: "https://leads.yourdomain.com" and DASHBOARD_PASSWORD in .env.
+leads.yourdomain.com {
+    reverse_proxy 127.0.0.1:8787
+}

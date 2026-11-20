@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Today</h1>
+<div class="grid">
+  <div class="card stat"><div class="n">{{ o.today.sent }}<span class="muted small"> / {{ o.today.cap }}</span></div><div class="l">emails sent today (cap incl. warm-up)</div></div>
+  <div class="card stat"><div class="n">{{ o.today.first_touch }}</div><div class="l">new leads contacted today</div></div>
+  <div class="card stat"><div class="n">{{ o.today.replies }}</div><div class="l">replies today</div></div>
+  <div class="card stat"><div class="n">{{ o.today.found }}</div><div class="l">businesses found today</div></div>
+</div>
+
+<h2>Waiting on you</h2>
+<div class="grid">
+  <a class="card stat" href="{{ url_for('outbox') }}"><div class="n">{{ waiting.outbox }}</div><div class="l">emails to approve</div></a>
+  <a class="card stat" href="{{ url_for('outbox') }}"><div class="n">{{ waiting.replies }}</div><div class="l">replies to approve (hot!)</div></a>
+  <a class="card stat" href="{{ url_for('manual') }}"><div class="n">{{ waiting.manual }}</div><div class="l">manual DMs / calls due</div></a>
+  <a class="card stat" href="{{ url_for('replies') }}"><div class="n">{{ waiting.flagged }}</div><div class="l">replies flagged for you (7 days)</div></a>
+</div>
+
+<h2>Last {{ o.days }} days</h2>
+<div class="grid">
+  <div class="card stat"><div class="n">{{ o.contacted }}</div><div class="l">people contacted</div></div>
+  <div class="card stat"><div class="n">{{ o.reply_rate }}%</div><div class="l">reply rate</div></div>
+  <div class="card stat"><div class="n">{{ o.positive_rate }}%</div><div class="l">positive replies</div></div>
+  <div class="card stat"><div class="n">{{ o.meetings }}</div><div class="l">calls booked</div></div>
+  <div class="card stat"><div class="n">{{ o.won }}</div><div class="l">deals won{% if o.revenue %} ({{ '%.0f'|format(o.revenue) }}){% endif %}</div></div>
+  <div class="card stat"><div class="n {{ 'bad' if o.bounce_rate > 5 }}">{{ o.bounce_rate }}%</div><div class="l">bounce rate (keep under 3%)</div></div>
+</div>
+
+<div class="grid2">
+  <div>
+    <h2>Pipeline</h2>
+    <table class="funnel">
+      {% for f in funnel if f.count %}
+      <tr><td><a href="{{ url_for('contacts', stage=f.stage) }}">{{ f.label }}</a></td><td class="n">{{ f.count }}</td></tr>
+      {% else %}<tr><td class="muted">No contacts yet. Run a discovery below, or <code>leadpipe import leads.csv</code>.</td></tr>{% endfor %}
+    </table>
+    <h2>Companies</h2>
+    <p class="small muted">{% for k, v in companies.items() %}<a href="{{ url_for('leads', status=k) }}">{{ k }}: {{ v }}</a>{{ ' · ' if not loop.last }}{% endfor %}</p>
+    <h2>Run now</h2>
+    <div class="row">
+      {% for job, label in [('discover','Find new businesses'),('enrich','Research websites'),('write','Write drafts'),('inbox','Check replies'),('onboarding','Advance onboarding')] %}
+      <form class="inline" method="post" action="{{ url_for('run_job', job=job) }}"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="small">{{ label }}</button></form>
+      {% endfor %}
+    </div>
+  </div>
+  <div>
+    <h2>Activity</h2>
+    <table>
+      {% for e in events %}
+      <tr><td class="small muted" style="white-space:nowrap">{{ e.ts|ago }}</td>
+          <td class="small"><span class="pill {{ 'bad' if e.level=='error' else ('warn' if e.level=='warn' else '') }}">{{ e.kind }}</span>
+          {% if e.contact_id %}<a href="{{ url_for('contact', cid=e.contact_id) }}">{{ e.message|short(110) }}</a>{% else %}{{ e.message|short(110) }}{% endif %}</td></tr>
+      {% else %}<tr><td class="muted">Nothing yet.</td></tr>{% endfor %}
+    </table>
+  </div>
+</div>
+{% endblock %}

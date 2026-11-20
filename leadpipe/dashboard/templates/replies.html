@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Replies · Lead Pipeline{% endblock %}
+{% block content %}
+<h1>Replies (last 45 days)</h1>
+<p class="muted small">Every reply is read and sorted automatically. Hot ones get a drafted answer in the Outbox and an alert to you. Unsubscribes and bounces are handled with no action needed.</p>
+<div class="table-wrap"><table>
+  <tr><th>When</th><th>From</th><th>Meaning</th><th>Their words</th><th>Now</th></tr>
+  {% for r in rows %}
+  {% set d = jloads(r.intent_detail, {}) %}
+  <tr>
+    <td class="small muted" style="white-space:nowrap">{{ r.received_at|ago }}</td>
+    <td><a href="{{ url_for('contact', cid=r.cid) }}"><b>{{ r.company }}</b></a><div class="small muted">{{ r.full_name or r.from_addr }}</div></td>
+    <td><span class="pill {{ 'ok' if r.intent in ('interested','meeting_booked','ready_to_buy','price_question','portfolio_request','timeline_question','proposal_request','referral') else ('bad' if r.intent in ('unsubscribe','not_interested','bounce') else '') }}">{{ INTENTS.get(r.intent, r.intent) }}</span>
+      {% if r.needs_human %}<span class="pill warn">needs you</span>{% endif %}
+      <div class="small muted">{{ d.source }} {{ ((d.confidence or 0) * 100)|round|int }}%</div></td>
+    <td class="small">{{ r.body|short(220) }}</td>
+    <td class="small">{{ STAGES.get(r.stage, r.stage) }}</td>
+  </tr>
+  {% else %}<tr><td colspan="5" class="muted">No replies yet. Replies are checked every few minutes (needs IMAP settings in .env).</td></tr>{% endfor %}
+</table></div>
+{% endblock %}

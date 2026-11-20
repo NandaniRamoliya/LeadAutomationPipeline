@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Settings · Lead Pipeline{% endblock %}
+{% block content %}
+<h1>Settings</h1>
+<div class="grid2">
+<div class="card">
+  <h3>Switches</h3>
+  {% for key, label, on, help in [
+     ('sending_paused', 'Pause ALL sending', status.paused, 'Emergency stop. Nothing leaves until you resume.'),
+     ('autopilot_cold', 'Autopilot for outreach', status.autopilot_cold, 'ON: outreach emails that pass every check go out without your approval. Turn on only after a week or two of reviewing drafts.'),
+     ('autopilot_replies', 'Autopilot for simple replies', status.autopilot_replies, 'ON: answers to "interested / how much / how long / portfolio / booked" go out automatically. Everything else still waits for you.')] %}
+  <form method="post" action="{{ url_for('toggle', key=key) }}" class="row" style="margin:10px 0">
+    <input type="hidden" name="_csrf" value="{{ csrf }}">
+    <span style="flex:1"><b>{{ label }}</b>: <span class="pill {{ 'ok' if on else '' }}">{{ 'ON' if on else 'OFF' }}</span><br><span class="small muted">{{ help }}</span></span>
+    <button class="small">Turn {{ 'off' if on else 'on' }}</button>
+  </form>{% endfor %}
+  <p class="small muted">Sending mode: <b>{{ status.mode }}</b>. Change <code>sending.mode</code> in config.yaml (<code>dry_run</code> saves emails to <code>data/dry_run/</code>; <code>smtp</code> sends for real), then restart.</p>
+</div>
+<div class="card">
+  <h3>Your profile (from config.yaml)</h3>
+  <table class="small">{% for k in ['your_name','business_name','service','starter_offer','price_range','quick_win','booking_link','physical_address'] %}
+    <tr><td class="muted">{{ k }}</td><td>{{ profile.get(k) }}</td></tr>{% endfor %}
+    <tr><td class="muted">proof</td><td>{{ (profile.get('proof') or [])|join('; ') }}</td></tr></table>
+  <h3 style="margin-top:12px">Targets</h3>
+  <ul class="small">{% for t in targets %}<li><b>{{ t.name }}</b>: {{ t.categories|join(', ') }} in {{ t.area }} ({{ t.timezone }})</li>{% endfor %}</ul>
+  <p class="small muted">Edit config.yaml and restart to change these. Run <code>leadpipe doctor</code> after changes.</p>
+</div>
+</div>
+<h2>Do-not-contact list</h2>
+<form method="post" action="{{ url_for('add_suppression') }}" class="row" style="max-width:520px">
+  <input type="hidden" name="_csrf" value="{{ csrf }}"><input name="value" placeholder="email@company.com or @company.com"><button>Add</button></form>
+<table style="margin-top:10px">{% for s in suppression %}<tr><td class="small">{{ s.value if not s.value.startswith('sha256:') else '(erased person)' }}</td><td class="small muted">{{ s.reason }}</td><td class="small muted">{{ s.created_at|ago }}</td></tr>{% else %}<tr><td class="muted">Empty.</td></tr>{% endfor %}</table>
+{% endblock %}

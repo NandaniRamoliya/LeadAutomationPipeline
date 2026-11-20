@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Manual DMs · Lead Pipeline{% endblock %}
+{% block content %}
+<h1>Manual DMs &amp; calls</h1>
+<p class="muted small">These businesses have no email address, so the pipeline writes the message and you send it yourself (Instagram DM, WhatsApp, phone). About 10 a day, by hand. Then click "I sent it" and the next follow-up gets scheduled. If they answer, open the lead and use "Log their reply".</p>
+{% for m in rows %}
+<form class="msg" method="post">
+  <input type="hidden" name="_csrf" value="{{ csrf }}">
+  <div class="msg-head">
+    <span class="pill acc">{{ m.sequence }} · step {{ (m.step or 0) + 1 }} · {{ m.purpose }}</span>
+    <a href="{{ url_for('contact', cid=m.cid) }}"><b>{{ m.company }}</b></a>
+    <span class="small muted">due {{ m.scheduled_for|ago }}</span>
+    {% if m.instagram %}<a class="small" href="{{ m.instagram if '://' in m.instagram else 'https://instagram.com/' ~ m.instagram }}" target="_blank" rel="noopener">Instagram</a>{% endif %}
+    {% if m.facebook %}<a class="small" href="{{ m.facebook }}" target="_blank" rel="noopener">Facebook</a>{% endif %}
+    {% if m.phone %}<span class="small">📞 {{ m.phone }}</span>{% endif %}
+    {% if m.website %}<a class="small" href="{{ m.website }}" target="_blank" rel="noopener">site</a>{% endif %}
+  </div>
+  <div class="msg-body">
+    <input type="hidden" name="subject" value="{{ m.subject or '' }}">
+    <textarea name="body">{{ m.body }}</textarea>
+    <div class="row" style="margin-top:8px"><button class="primary" formaction="{{ url_for('manual_done', mid=m.id) }}">I sent it</button>
+      <button formaction="{{ url_for('outbox_action', mid=m.id, action='skip') }}">Skip</button>
+      <button class="danger" formaction="{{ url_for('outbox_action', mid=m.id, action='stop') }}">Stop</button></div>
+  </div>
+</form>
+{% else %}<div class="card muted">No manual messages due.</div>{% endfor %}
+{% endblock %}

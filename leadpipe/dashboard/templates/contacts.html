@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Pipeline · Lead Pipeline{% endblock %}
+{% block content %}
+<h1>Pipeline{% if stage %}: {{ STAGES.get(stage, stage) }}{% endif %}</h1>
+<div class="row" style="margin-bottom:12px">
+  <a class="btn small" href="{{ url_for('contacts') }}">All</a>
+  {% for f in funnel if f.count %}<a class="btn small" href="{{ url_for('contacts', stage=f.stage) }}">{{ f.stage }} ({{ f.count }})</a>{% endfor %}
+</div>
+<div class="table-wrap"><table>
+  <tr><th>Company</th><th>Person</th><th>Stage</th><th>Track</th><th>Next action</th><th>Last sent</th><th>Last reply</th></tr>
+  {% for c in rows %}
+  <tr>
+    <td><a href="{{ url_for('contact', cid=c.id) }}"><b>{{ c.company }}</b></a></td>
+    <td class="small">{{ c.full_name or '' }}<div class="muted">{{ c.email or ('manual: ' ~ c.channel) }} {% if c.email_status %}<span class="pill">{{ c.email_status }}</span>{% endif %}</div></td>
+    <td><span class="pill acc">{{ c.stage }}</span></td>
+    <td class="small">{{ c.sequence or '' }}{% if c.sequence %} · step {{ c.step + 1 }}{% endif %}</td>
+    <td class="small">{{ c.next_action_at|ago if c.next_action_at else '' }}</td>
+    <td class="small">{{ c.last_outbound_at|ago if c.last_outbound_at else '' }}</td>
+    <td class="small">{{ c.last_inbound_at|ago if c.last_inbound_at else '' }}</td>
+  </tr>
+  {% else %}<tr><td colspan="7" class="muted">Nobody here.</td></tr>{% endfor %}
+</table></div>
+{% endblock %}

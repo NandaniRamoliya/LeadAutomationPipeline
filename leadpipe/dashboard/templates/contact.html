@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}{{ co.name }} · Lead Pipeline{% endblock %}
+{% block content %}
+<h1>{{ co.name }} <span class="pill acc">{{ STAGES.get(ct.stage, ct.stage) }}</span></h1>
+<p class="muted">{{ ct.full_name or 'No name found' }}{% if ct.role %} · {{ ct.role }}{% endif %} ·
+  {% if ct.email %}{{ ct.email }} <span class="pill">{{ ct.email_status }}</span>{% else %}manual channel (no email){% endif %}
+  {% if ct.sequence %} · track <b>{{ ct.sequence }}</b>, step {{ ct.step + 1 }}, next {{ ct.next_action_at|ago }}{% endif %}
+  {% if ct.lost_reason and ct.stage in ('lost','paused','unsubscribed','bounced') %} · {{ ct.lost_reason }}{% endif %}</p>
+
+<div class="grid2">
+<div>
+  <div class="card">
+    <h3>Business</h3>
+    <div class="small">{{ co.category }} · {{ co.city }} · score <b>{{ co.score }}</b><br>
+    {% if co.website %}<a href="{{ co.website }}" target="_blank" rel="noopener">{{ co.website }}</a><br>{% endif %}
+    {% if co.phone %}📞 {{ co.phone }}<br>{% endif %}{% if co.instagram %}Instagram: {{ co.instagram }}<br>{% endif %}
+    {% if co.address %}{{ co.address }}{% endif %}</div>
+    <h3 style="margin-top:12px">What the Auditor found</h3>
+    <ul class="small">{% for k, v in jloads(co.signals, {}).items() %}<li><b>{{ SIGNALS[k].label if k in SIGNALS else k }}</b> <span class="muted">({{ v|evidence }})</span></li>{% else %}<li class="muted">No signals.</li>{% endfor %}</ul>
+    {% if jloads(co.problems, []) %}<h3>Top problems</h3><ul class="small">{% for p in jloads(co.problems, []) %}<li>{{ p }}</li>{% endfor %}</ul>{% endif %}
+    {% if colleagues %}<h3>Colleagues</h3><ul class="small">{% for c in colleagues %}<li><a href="{{ url_for('contact', cid=c.id) }}">{{ c.full_name or c.email }}</a> <span class="pill">{{ c.stage }}</span></li>{% endfor %}</ul>{% endif %}
+  </div>
+
+  <div class="card" style="margin-top:12px">
+    <h3>Move this lead</h3>
+    <p class="small muted">Changing the stage starts that stage's own follow-up track (and stops the old one).</p>
+    <form method="post" action="{{ url_for('contact_action', cid=ct.id, action='stage') }}" class="row">
+      <input type="hidden" name="_csrf" value="{{ csrf }}">
+      <select name="stage" style="max-width:260px">{% for s, label in STAGES.items() %}<option value="{{ s }}" {{ 'selected' if s==ct.stage }}>{{ label }}</option>{% endfor %}</select>
+      <input name="reason" placeholder="reason (optional)" style="max-width:200px"><button>Move</button>
+    </form>
+    {% if ct.stage not in ('won','client') %}
+    <form method="post" action="{{ url_for('contact_action', cid=ct.id, action='won') }}" class="row" style="margin-top:10px">
+      <input type="hidden" name="_csrf" value="{{ csrf }}">
+      <input name="value" placeholder="deal value (optional)" style="max-width:180px">
+      <input name="currency" placeholder="INR" style="max-width:90px">
+      <button class="primary">🎉 Mark as WON: start onboarding</button>
+    </form>{% endif %}
+    <form method="post" action="{{ url_for('contact_action', cid=ct.id, action='suppress') }}" style="margin-top:10px" onsubmit="return confirm('Never contact this person again?')">
+      <input type="hidden" name="_csrf" value="{{ csrf }}"><button class="danger small">Do not contact (ever)</button></form>
+  </div>
+
+  {% if deal %}
+  {% set cl = jloads(deal.checklist, {}) %}
+  <div class="card" style="margin-top:12px">
+    <h3>Onboarding ({{ deal.status }})</h3>
+    <p class="small muted">Steps marked "auto" tick themselves when the email is sent. Tick yours when they happen; the next email is drafted automatically.</p>
+    {% for key, label, who in CHECKLIST %}
+    <form method="post" action="{{ url_for('contact_action', cid=ct.id, action='onboard') }}" class="row" style="margin:4px 0">
+      <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="key" value="{{ key }}">
+      <input type="hidden" name="done" value="{{ '0' if key in cl else '1' }}">
+      <span>{{ '✅' if key in cl else '⬜' }}</span><span style="flex:1">{{ label }} <span class="muted small">({{ who }})</span></span>
+      {% if who == 'you' or key in cl %}<button class="small">{{ 'Undo' if key in cl else 'Mark done' }}</button>{% endif %}
+    </form>{% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="card" style="margin-top:12px">
+    <h3>Log their reply (phone / DM / WhatsApp)</h3>
+    <form method="post" action="{{ url_for('contact_action', cid=ct.id, action='log-reply') }}">
+      <input type="hidden" name="_csrf" value="{{ csrf }}">
+      <textarea name="text" style="min-height:70px" placeholder="What they said"></textarea>
+      <div class="row" style="margin-top:6px"><select name="intent" style="max-width:280px"><option value="">Detect automatically</option>
+        {% for k, v in INTENTS.items() if k not in ('bounce','auto_reply') %}<option value="{{ k }}">{{ v }}</option>{% endfor %}</select><button>Log reply</button></div>
+    </form>
+  </div>
+  <div class="card" style="margin-top:12px">
+    <h3>Write your own email</h3>
+    <form method="post" action="{{ url_for('contact_action', cid=ct.id, action='compose') }}">
+      <input type="hidden" name="_csrf" value="{{ csrf }}">
+      <input name="subject" placeholder="Subject (Re: ... keeps the thread)">
+      <textarea name="body" style="min-height:90px;margin-top:6px" placeholder="Hi ..."></textarea>
+      <button style="margin-top:6px">Add to Outbox</button>
+    </form>
+    <form method="post" action="{{ url_for('contact_action', cid=ct.id, action='note') }}" class="row" style="margin-top:10px">
+      <input type="hidden" name="_csrf" value="{{ csrf }}"><input name="note" placeholder="Private note"><button>Add note</button></form>
+    {% if ct.notes %}<pre class="body small muted">{{ ct.notes }}</pre>{% endif %}
+  </div>
+</div>
+
+<div>
+  <h2 style="margin-top:0">Conversation</h2>
+  <div class="timeline">
+  {% for m in msgs %}
+    <div class="item {{ m.direction }}">
+      <div class="small"><b>{{ 'They wrote' if m.direction=='in' else 'You' }}</b>
+        {% if m.direction=='in' %}<span class="pill ok">{{ INTENTS.get(m.intent, m.intent) }}</span>{% else %}<span class="pill">{{ m.kind }}{% if m.purpose %} · {{ m.purpose }}{% endif %}</span> <span class="pill {{ 'ok' if m.status=='sent' else ('bad' if m.status in ('failed','cancelled','rejected') else 'warn') }}">{{ m.status }}</span>{% endif %}
+        <span class="muted">{{ (m.sent_at or m.received_at or m.created_at)|ago }}</span></div>
+      <div><b>{{ m.subject or '' }}</b></div>
+      <pre class="body small">{{ m.body|short(1200) if m.direction=='in' else m.body }}</pre>
+      {% if m.error %}<div class="small muted">{{ m.error }}</div>{% endif %}
+    </div>
+  {% else %}<p class="muted">No messages yet.</p>{% endfor %}
+  </div>
+  <h2>History</h2>
+  <table>{% for e in events %}<tr><td class="small muted" style="white-space:nowrap">{{ e.ts|ago }}</td><td class="small">{{ e.message }}</td></tr>{% endfor %}</table>
+</div>
+</div>
+{% endblock %}

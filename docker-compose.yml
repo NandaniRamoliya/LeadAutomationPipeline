@@ -1,0 +1,16 @@
+# 24/7 with Docker:  docker compose up -d   (logs: docker compose logs -f)
+services:
+  leadpipe:
+    build: .
+    container_name: leadpipe
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      LEADPIPE_CONFIG: /app/config.yaml
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+      - ./.env:/app/.env:ro
+      - ./data:/app/data
+    ports:
+      # Only reachable from this machine. Put a reverse proxy (Caddy/Nginx) with HTTPS in front to expose it.
+      - "127.0.0.1:8787:8787"

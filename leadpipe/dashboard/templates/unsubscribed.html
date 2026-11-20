@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Unsubscribe</title><link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"></head>
+<body><main style="max-width:520px">
+<div class="card" style="margin-top:40px">
+{% if not ok %}
+  <h1>Link not valid</h1><p>Just reply to the email with "unsubscribe" and you won't hear from us again.</p>
+{% elif done %}
+  <h1>You're unsubscribed</h1><p>You won't receive any more emails from {{ profile.get('your_name') or 'us' }}. Sorry for the interruption.</p>
+{% else %}
+  <h1>Unsubscribe?</h1><p>Click below and {{ profile.get('your_name') or 'we' }} will never email you again.</p>
+  <form method="post"><button class="primary">Yes, unsubscribe me</button></form>
+{% endif %}
+</div></main></body></html>

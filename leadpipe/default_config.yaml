@@ -1,0 +1,234 @@
+# =====================================================================
+#  LeadAutomationPipeline: main settings file
+#
+#  `leadpipe init` copies this file to ./config.yaml. Edit config.yaml,
+#  never this file. Secrets (passwords, API keys) go in .env, not here.
+#  After editing, run:  leadpipe doctor
+# =====================================================================
+
+# ---------------------------------------------------------------------
+# 1. WHO YOU ARE. Every email is written from this. Be specific.
+#    Rule from the playbooks: show, don't claim. Real numbers beat adjectives.
+# ---------------------------------------------------------------------
+profile:
+  your_name: "Your Name"
+  business_name: "Your Studio"
+  website: "https://yourstudio.com"
+  # What you sell, in the words a business owner would use.
+  service: "websites with online booking"
+  service_long: "I build fast, mobile-friendly websites with online booking for local businesses."
+  # The quick, low-risk first project you offer (from "4 AI Employees": starter offer).
+  starter_offer: "a booking-ready one-page website in 5 days"
+  # Only used when someone asks "how much?". Never in a first email.
+  price_range: "₹8,000 to ₹15,000"
+  delivery_time: "5 to 7 working days"
+  # Credibility: 1-3 short, relevant, provable results, written as "built ...", "helped ...". [] if none yet.
+  proof:
+    - "built booking websites for 12 local clinics"
+  # Optional: more relevant proof per business type (used instead of the line above for that category).
+  proof_by_category: {}               # e.g. {dentist: "built booking sites for 5 dental clinics", cafe: "..."}
+  proof_links: []                     # portfolio / case-study URLs
+  # The "extra effort" you offer for free to start a conversation.
+  quick_win: "a free 2-minute video audit of your website"
+  quick_win_no_site: "a free mock-up of what a simple website for you could look like"   # for leads with no website
+  # Your calendar link (Cal.com / Calendly / Google Calendar booking page).
+  booking_link: "https://cal.com/your-name/15min"
+  signature: |
+    Your Name
+    Your Studio | yourstudio.com
+  # A real postal address. Required by US CAN-SPAM in every commercial email.
+  physical_address: "Your Studio, Your Street, Your City, PIN, Country"
+
+# ---------------------------------------------------------------------
+# 2. WHERE TO FIND LEADS. Uses OpenStreetMap by default (free, no account).
+#    categories: plain words (dentist, cafe, salon, gym, clinic, restaurant,
+#    lawyer, accountant, real_estate, hotel, school, car_repair, plumber...)
+#    or raw OSM tags like "amenity=cafe". Run `leadpipe categories` for the list.
+# ---------------------------------------------------------------------
+targets:
+  - name: "pune-dentists"
+    area: "Pune, India"
+    categories: ["dentist", "clinic"]
+    timezone: "Asia/Kolkata"          # recipients' timezone: emails go out in THEIR office hours
+    country: "IN"
+    limit: 150
+
+discovery:
+  enabled: true
+  providers: ["osm"]                  # osm (free) | google_places (needs GOOGLE_PLACES_API_KEY in .env)
+  interval_hours: 6                   # how often to look for new businesses
+  min_ready_leads: 30                 # only search again when fewer fresh leads than this are waiting
+
+# ---------------------------------------------------------------------
+# 3. RESEARCH & QUALIFYING. The "Auditor" reads each website (no AI cost).
+# ---------------------------------------------------------------------
+enrichment:
+  per_cycle: 15                       # websites checked per cycle
+  request_timeout: 12
+  max_pages_per_site: 5
+  max_contacts_per_company: 2         # never email more than 2 people at one company
+  allow_role_emails: true             # info@ / contact@ (fine for small local businesses)
+  allow_guessed_emails: false         # firstname@domain guesses. Risky for bounces; keep off.
+  smtp_probe: false                   # RCPT TO mailbox check. Port 25 is blocked on most networks.
+  min_score: 25                       # leads scoring below this are not contacted
+  manual_outreach: true               # no email but phone/Instagram? -> goes to your "Manual DMs" list
+
+# What makes a business a GOOD lead for YOU. Weight 0 = ignore, higher = more important.
+# Pick the ones your service actually fixes. `leadpipe signals` explains each one.
+signals:
+  no_website: 25
+  site_broken: 20
+  instagram_only: 20
+  no_online_booking: 20
+  not_mobile_friendly: 15
+  slow_site: 10
+  no_https: 10
+  outdated_site: 10
+  running_ads: 10
+  hiring: 5
+  no_contact_form: 5
+  weak_seo: 5
+  no_analytics: 5
+  no_live_chat: 0
+
+# ---------------------------------------------------------------------
+# 4. SENDING. Starts in dry_run: nothing leaves your computer until you switch to smtp.
+#    SMTP/IMAP logins live in .env.
+# ---------------------------------------------------------------------
+sending:
+  mode: dry_run                       # dry_run (saves .eml files to data/dry_run) | smtp (real emails)
+  daily_cap: 40                       # hard maximum per mailbox per day, after warm-up
+  warmup:
+    enabled: true
+    start_date: ""                    # YYYY-MM-DD you started sending; blank = the first send day
+    start_per_day: 5
+    increase_per_day: 2               # 5, 7, 9, ... until daily_cap
+  new_leads_per_day: 10               # first-touch emails per day (follow-ups always go first)
+  office_hours:                       # in the RECIPIENT's timezone
+    start: "09:30"
+    end: "17:30"
+    days: ["mon", "tue", "wed", "thu", "fri"]
+  min_gap_minutes: 3                  # random pause between two emails (human speed)
+  max_gap_minutes: 9
+  one_company_per_day: true           # never email two people at the same company on the same day
+
+approval:
+  autopilot_cold: false               # false = every outreach email waits in the Outbox for your OK
+  autopilot_replies: false            # false = every reply to a real human waits for your OK
+  draft_ahead_hours: 24               # write drafts this early so you can review them in time
+
+# ---------------------------------------------------------------------
+# 5. FOLLOW-UP TRACKS. `day` = days after the track started.
+#    on_complete: what happens after the last step + close_after_days of silence.
+#    Values: lost | nurture | none
+# ---------------------------------------------------------------------
+sequences:
+  cold:                               # never replied yet (Cold Email Playbook: day 0/3/7/12/18)
+    on_complete: lost
+    close_after_days: 7
+    steps:
+      - {day: 0,  purpose: intro}       # observation + their loss + one soft question. No pitch, no price.
+      - {day: 3,  purpose: bump}        # 1-2 lines, adds one small new detail
+      - {day: 7,  purpose: insight}     # a NEW observation (second problem)
+      - {day: 12, purpose: value}       # offer the quick win / mini audit
+      - {day: 18, purpose: breakup}     # polite close, door left open
+  warm:                               # replied "interested" but no call booked yet
+    on_complete: nurture
+    close_after_days: 5
+    steps:
+      - {day: 2,  purpose: booking_nudge}
+      - {day: 5,  purpose: proof}
+      - {day: 10, purpose: close_loop}
+  proposal:                           # had a call / asked for a proposal, no decision yet
+    on_complete: nurture
+    close_after_days: 7
+    steps:
+      - {day: 2,  purpose: proposal_followup}
+      - {day: 5,  purpose: objection_preempt}
+      - {day: 10, purpose: decision_nudge}
+      - {day: 21, purpose: close_file}
+  nurture:                            # "not now" / "we already have someone"
+    on_complete: lost
+    close_after_days: 14
+    steps:
+      - {day: 30, purpose: nurture_value}
+      - {day: 60, purpose: nurture_idea}
+      - {day: 90, purpose: nurture_final}
+  client_care:                        # after onboarding is complete (retention + referrals)
+    on_complete: none
+    close_after_days: 0
+    steps:
+      - {day: 14,  purpose: care_checkin}
+      - {day: 30,  purpose: care_feedback}
+      - {day: 60,  purpose: care_referral}
+      - {day: 120, purpose: care_next}
+
+# ---------------------------------------------------------------------
+# 6. CLIENT ONBOARDING (Client Onboarding System: Contract > Payment > Welcome >
+#    Kickoff > Access > Portal). Starts when you mark a deal as WON.
+# ---------------------------------------------------------------------
+onboarding:
+  contract_link: ""                   # e-sign link (Zoho Sign, DocuSign, PandaDoc). Blank = "attached".
+  payment_link: ""                    # Razorpay / Stripe / PayPal / UPI link
+  welcome_doc_link: ""                # see docs/templates/welcome_document.md
+  kickoff_link: ""                    # blank = profile.booking_link
+  portal_link: ""                     # Notion page / Google Drive folder for the client
+  reminder_every_days: 2
+  max_reminders: 3
+  access_items:
+    - "Domain / hosting access (please invite me as a user, never share passwords on chat)"
+    - "Google Business Profile: add me as a Manager"
+    - "Logo and brand files (colours, fonts)"
+    - "Google Analytics and Search Console: add me as a user"
+
+# ---------------------------------------------------------------------
+# 7. REPLIES & ALERTS
+# ---------------------------------------------------------------------
+replies:
+  ooo_delay_days: 4                   # out-of-office auto-reply: push the next follow-up by N days
+  reply_to_not_interested: true       # send a short, polite "understood, thanks" (still needs approval)
+  stop_company_on_reply: true         # anyone at the company replies -> stop emailing the others
+
+notifications:
+  owner_email: ""                     # hot-lead alerts + daily digest go here (blank = off)
+  daily_digest_hour: 19               # local hour (engine timezone) for the daily summary
+  # Optional: NOTIFY_WEBHOOK_URL (Slack/Discord) and TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID in .env
+
+# ---------------------------------------------------------------------
+# 8. AI (optional). Without AI, high-quality built-in templates are used.
+#    auto = Anthropic API if ANTHROPIC_API_KEY is set, else the `claude` CLI
+#    (uses your Claude Pro/Max plan), else templates.
+# ---------------------------------------------------------------------
+llm:
+  provider: auto                      # auto | anthropic | claude_cli | none
+  model: "claude-opus-5-5"
+  effort_writing: medium
+  effort_classify: low
+  timeout_seconds: 180
+
+# ---------------------------------------------------------------------
+# 9. SAFETY & LEGAL CHECKS, run on every email before it can be sent.
+#    Read docs/LEGAL_AND_COMPLIANCE.md. This is not legal advice.
+# ---------------------------------------------------------------------
+compliance:
+  include_address: true
+  opt_out_line: "P.S. If this isn't relevant, just reply \"no thanks\" and I won't email again."
+  restricted_countries: []            # ISO codes never emailed, e.g. ["DE", "CA"]
+  max_links_first_email: 0
+  max_links_followup: 1
+  extra_banned_phrases: []            # add your own
+
+# ---------------------------------------------------------------------
+# 10. ENGINE & DASHBOARD
+# ---------------------------------------------------------------------
+engine:
+  timezone: "Asia/Kolkata"            # YOUR timezone (digest time, "today" counters)
+  tick_seconds: 60
+  inbox_every_minutes: 5
+  write_every_minutes: 10
+  enrich_every_minutes: 20
+
+dashboard:
+  host: "127.0.0.1"                   # 0.0.0.0 to expose (then DASHBOARD_PASSWORD is required)
+  port: 8787
+  public_base_url: ""                 # e.g. https://leads.yourdomain.com: enables one-click unsubscribe + booking webhook
