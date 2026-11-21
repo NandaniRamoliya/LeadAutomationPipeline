@@ -1,24 +1,45 @@
 {% extends "base.html" %}
 {% block title %}Leads · Lead Pipeline{% endblock %}
 {% block content %}
-<h1>Leads (companies)</h1>
-<form class="row" method="get" style="margin-bottom:12px">
-  <input name="q" value="{{ q }}" placeholder="Search name, website, category" style="max-width:320px">
-  <select name="status" style="max-width:180px"><option value="">all statuses</option>
-    {% for s in ['new','qualified','disqualified','error'] %}<option value="{{ s }}" {{ 'selected' if s==status }}>{{ s }} ({{ counts.get(s, 0) }})</option>{% endfor %}
-  </select><button>Filter</button>
+<div class="row" style="justify-content:space-between">
+  <h1>Leads</h1>
+  <a class="small" href="{{ url_for('researching') }}">Being researched / not a fit: {{ unqualified }} →</a>
+</div>
+<div class="tabs">
+  {% for k, v in views.items() %}<a class="{{ 'on' if k == view }}" href="{{ url_for('leads', view=k) }}">{{ v[0] }} ({{ counts[k] }})</a>{% endfor %}
+</div>
+<form method="get" class="row" style="margin-bottom:8px">
+  <input type="hidden" name="view" value="{{ view }}">
+  <input name="q" value="{{ q }}" placeholder="Search name, city, type, email" style="max-width:260px">
+  <select name="area" style="max-width:200px"><option value="">every area</option>
+    {% for a in areas %}<option value="{{ a.id }}" {{ 'selected' if a.id|string == area_id }}>{{ a.name }}</option>{% endfor %}</select>
+  <input name="min" value="{{ min_score }}" placeholder="min score" style="max-width:110px">
+  <label class="check"><input type="checkbox" name="priority" value="1" {{ 'checked' if prio }}> high-value only</label>
+  <button>Filter</button>
 </form>
+<details style="margin-bottom:12px" {{ 'open' if has or hasnot }}><summary>Build a target list from problems found (e.g. "running ads AND no online booking")</summary>
+  <form method="get" class="card" style="margin-top:6px">
+    <input type="hidden" name="view" value="{{ view }}">
+    <div class="small muted">Must have:</div>
+    <div>{% for k, s in SIGNALS.items() %}<label class="check"><input type="checkbox" name="has" value="{{ k }}" {{ 'checked' if k in has }}> {{ s.label }}</label>{% endfor %}</div>
+    <div class="small muted" style="margin-top:8px">Must NOT have:</div>
+    <div>{% for k, s in SIGNALS.items() %}<label class="check"><input type="checkbox" name="not" value="{{ k }}" {{ 'checked' if k in hasnot }}> {{ s.label }}</label>{% endfor %}</div>
+    <button style="margin-top:8px">Show matching leads ({{ rows|length }})</button>
+  </form>
+</details>
+
 <div class="table-wrap"><table>
-  <tr><th>Score</th><th>Company</th><th>Category</th><th>Problems found</th><th>Status</th><th>Contacts</th></tr>
-  {% for c in rows %}
+  <tr><th>Business</th><th>Why they're a good lead</th><th>Status</th><th>What happens next</th><th>Reach by</th></tr>
+  {% for r in rows %}
   <tr>
-    <td><b>{{ '%.0f'|format(c.score or 0) }}</b></td>
-    <td><a href="{{ url_for('company', cid=c.id) }}"><b>{{ c.name }}</b></a><div class="small muted">{{ c.website or c.instagram or c.phone or '' }}</div></td>
-    <td class="small">{{ c.category or '' }}<div class="muted">{{ c.city or '' }}</div></td>
-    <td class="small">{% for p in jloads(c.problems, [])[:2] %}<div>• {{ p }}</div>{% endfor %}</td>
-    <td><span class="pill {{ 'ok' if c.status=='qualified' else ('bad' if c.status in ('disqualified','error') else '') }}">{{ c.status }}</span><div class="small muted">{{ c.status_reason or '' }}</div></td>
-    <td class="small">{{ c.n_contacts }}<div class="muted">{{ c.stages or '' }}</div></td>
+    <td><a href="{{ url_for('lead', cid=r.id) }}"><b>{{ r.company }}</b></a>{% if r.priority %} <span class="pill acc">high-value</span>{% endif %}
+      <div class="small muted">{{ (r.category or '')|replace('_',' ') }} · {{ r.city or '' }} · score {{ '%.0f'|format(r.score or 0) }}</div>
+      <div class="small muted">{{ r.full_name or '' }}{% if r.role %} ({{ r.role }}){% endif %}</div></td>
+    <td class="small">{% for k, v in jloads(r.signals, {}).items() if k in SIGNALS %}{% if loop.index <= 3 %}<div>• {{ SIGNALS[k].label }}</div>{% endif %}{% endfor %}</td>
+    <td><span class="pill {{ STAGE_PILL.get(r.stage, '') }}">{{ PLAIN_STAGE.get(r.stage, r.stage) }}</span></td>
+    <td class="small">{{ r.next }}</td>
+    <td class="small">{% for c in r.chans %}<span title="{{ LABELS[c] }}">{{ ICONS[c] }}</span> {% endfor %}</td>
   </tr>
-  {% else %}<tr><td colspan="6" class="muted">No companies yet.</td></tr>{% endfor %}
+  {% else %}<tr><td colspan="5" class="muted">No leads here yet. New businesses are found automatically; you can also import your own list in Settings → Import.</td></tr>{% endfor %}
 </table></div>
 {% endblock %}

@@ -52,8 +52,11 @@ def run_doctor(cfg: Config, db: DB, check_network: bool = True) -> bool:
     say(WARN if left else OK, "profile filled in" if not left else f"profile still has example values: {', '.join(left)}")
     if not p.get("proof"):
         say(INFO, "no proof listed: emails will skip the credibility line (fine when starting out)")
-    targets = cfg.get("targets") or []
-    say(OK if targets else FAIL, f"{len(targets)} target(s): " + ", ".join(t.get("name", "?") for t in targets))
+    r = cfg.section("reach")
+    say(OK if r.get("start_area") else FAIL, f"start area: {r.get('start_area') or 'not set'}"
+        + (" → then the rest of the country and the world, city by city" if r.get("world_rollout") else ""))
+    say(OK if r.get("business_types") else FAIL, f"business types: {', '.join(r.get('business_types') or []) or 'none'}")
+    say(INFO, "channels: " + ", ".join(cfg.get("channels.enabled") or []) + " (email automatic; others are To-do tasks)")
     w = [k for k, v in cfg.section("signals").items() if float(v or 0) > 0]
     say(OK if w else FAIL, f"{len(w)} buying signals switched on")
 
@@ -72,41 +75,48 @@ def run_doctor(cfg: Config, db: DB, check_network: bool = True) -> bool:
     if cfg.get("compliance.include_address", True) and (not p.get("physical_address") or p.get("physical_address") in PLACEHOLDERS):
         say(WARN, "physical_address is not set. US law (CAN-SPAM) requires a postal address in commercial email")
 
-    if check_network and cfg.from_email:
-        auth = dns_auth(cfg.sending_domain)
-        say(OK if auth["spf"] else FAIL, f"SPF for {cfg.sending_domain}: {auth['spf'] or 'MISSING (Gmail will spam you)'}")
-        say(OK if auth["dkim_selector"] else WARN, f"DKIM: {'found (selector ' + auth['dkim_selector'] + ')' if auth['dkim_selector'] else 'not found on common selectors. Check your provider'}")
-        say(OK if auth["dmarc"] else FAIL, f"DMARC: {auth['dmarc'] or 'MISSING. Add TXT _dmarc.' + cfg.sending_domain + ' = v=DMARC1; p=none;'}")
-
-    if check_network and cfg.env("SMTP_HOST"):
-        try:
-            port = int(cfg.env("SMTP_PORT", "587") or 587)
-            sec = cfg.env("SMTP_SECURITY", "starttls").lower()
-            s = smtplib.SMTP_SSL(cfg.env("SMTP_HOST"), port, timeout=20) if sec == "ssl" else smtplib.SMTP(cfg.env("SMTP_HOST"), port, timeout=20)
-            s.ehlo()
-            if sec == "starttls":
-                s.starttls()
+    from .mailboxes import mailboxes
+    boxes = mailboxes(cfg)
+    domains_checked: set[str] = set()
+    for mb in boxes:
+        print(f"-- mailbox '{mb.name}' ({mb.email})")
+        if check_network and "@" in mb.email and mb.domain not in domains_checked and mb.domain != "localhost":
+            domains_checked.add(mb.domain)
+            auth = dns_auth(mb.domain)
+            say(OK if auth["spf"] else FAIL, f"SPF for {mb.domain}: {auth['spf'] or 'MISSING (Gmail will spam you)'}")
+            say(OK if auth["dkim_selector"] else WARN, f"DKIM: {'found (selector ' + auth['dkim_selector'] + ')' if auth['dkim_selector'] else 'not found on common selectors. Check your provider'}")
+            say(OK if auth["dmarc"] else FAIL, f"DMARC: {auth['dmarc'] or 'MISSING. Add TXT _dmarc.' + mb.domain + ' = v=DMARC1; p=none;'}")
+        if check_network and mb.smtp_host:
+            try:
+                s = smtplib.SMTP_SSL(mb.smtp_host, mb.smtp_port, timeout=20) if mb.smtp_security == "ssl" else smtplib.SMTP(mb.smtp_host, mb.smtp_port, timeout=20)
                 s.ehlo()
-            if cfg.env("SMTP_USER"):
-                s.login(cfg.env("SMTP_USER"), cfg.env("SMTP_PASSWORD"))
-            s.quit()
-            say(OK, f"SMTP login to {cfg.env('SMTP_HOST')} works")
-        except Exception as exc:
-            say(FAIL, f"SMTP login failed: {exc}. Gmail/Workspace needs an App Password")
-    elif mode == "smtp":
-        say(FAIL, "SMTP_HOST is not set in .env")
+                if mb.smtp_security == "starttls":
+                    s.starttls()
+                    s.ehlo()
+                if mb.smtp_user:
+                    s.login(mb.smtp_user, mb.smtp_password)
+                s.quit()
+                say(OK, f"SMTP login to {mb.smtp_host} works")
+            except Exception as exc:
+                say(FAIL, f"SMTP login failed: {exc}. Gmail/Workspace needs an App Password")
+        elif mode == "smtp":
+            say(FAIL, "SMTP host is not set for this mailbox")
+        if not mb.imap_host:
+            say(WARN, "no IMAP settings: replies to this mailbox won't be read automatically (log them in the dashboard)")
+        elif check_network:
+            try:
+                c = imaplib.IMAP4_SSL(mb.imap_host, mb.imap_port, timeout=20)
+                c.login(mb.imap_user, mb.imap_password)
+                c.logout()
+                say(OK, f"IMAP login to {mb.imap_host} works (replies are read automatically)")
+            except Exception as exc:
+                say(FAIL, f"IMAP login failed: {exc}")
 
-    print("\n== Replies ==")
-    if not cfg.env("IMAP_HOST"):
-        say(WARN, "IMAP_HOST not set: replies won't be read automatically (you can still log them in the dashboard)")
-    elif check_network:
-        try:
-            c = imaplib.IMAP4_SSL(cfg.env("IMAP_HOST"), int(cfg.env("IMAP_PORT", "993") or 993), timeout=20)
-            c.login(cfg.env("IMAP_USER") or cfg.env("SMTP_USER"), cfg.env("IMAP_PASSWORD") or cfg.env("SMTP_PASSWORD"))
-            c.logout()
-            say(OK, f"IMAP login to {cfg.env('IMAP_HOST')} works")
-        except Exception as exc:
-            say(FAIL, f"IMAP login failed: {exc}")
+    print("\n== Running 24/7 ==")
+    from . import service
+    st = service.status(cfg)
+    say(OK if st["installed"] else WARN, "background service: " + ("installed (starts with the computer)" if st["installed"]
+        else "not installed. Run `leadpipe service install` so it runs by itself"))
 
     print("\n== AI ==")
     llm = LLM(cfg)

@@ -17,7 +17,8 @@
 | Data minimisation | Only business name, public website facts, name/role/business email are stored |
 | Right to erasure | `leadpipe forget email@x.com` deletes everything, keeping only a one-way hash so they're never re-added |
 | Volume limits | Daily cap, warm-up, max 2 people per company, one company per day |
-| Restricted countries | `compliance.restricted_countries: ["DE", "CA"]` disqualifies leads in those countries |
+| Restricted countries | `compliance.restricted_countries: ["DE", "CA"]` disqualifies leads; `reach.skip_countries` never searches there |
+| Opt-outs on every channel | "stop" on WhatsApp/DM/phone suppresses that number and profile, not just the email |
 
 ## Country notes (B2B cold email)
 
@@ -42,10 +43,20 @@
 - [ ] Process erasure requests with `leadpipe forget`
 - [ ] Keep `data/leadpipe.db` secure and backed up (it contains contact data)
 
-## Platforms
+## WhatsApp, social DMs and phone calls
 
-Do **not** automate LinkedIn, Instagram or WhatsApp messaging. It breaks their terms of service and gets accounts
-banned. The pipeline only *drafts* those messages (Manual DMs page) for you to send by hand.
+The pipeline **writes** these messages and scripts, but **you** send them (one click on the To-do page). That is deliberate:
+
+| Channel | Rule | What the pipeline does |
+|---|---|---|
+| **WhatsApp** | WhatsApp's Business Policy requires opt-in before *businesses* message people through the Business API; automated or bulk messaging from personal/Business-app accounts gets numbers banned. | Opens WhatsApp with the message typed (wa.me click-to-chat); you send it personally, one at a time, capped per day. Opt-outs ("stop") block the number forever. |
+| **Instagram / Facebook / LinkedIn / X** | Their terms forbid automated messaging and scraping; accounts get restricted or banned. | Copies the message and opens the profile; you send it. Profile links come only from the business's own website or your imports. |
+| **Phone calls (US)** | TCPA: no autodialled or artificial/AI-voice calls to mobiles without consent (no B2B exemption for AI voices); respect the National Do Not Call Registry for consumer lines. | Calls are dialled by you, live. Log "not interested" and the number is never used again. |
+| **Phone calls (India)** | TRAI's Telecom Commercial Communications Customer Preference Regulations: promotional calls must respect the DND / NCPR registry and come from registered telemarketer numbers; individual business-to-business calls by you are common practice. | One call at a time, only during business hours, script asks for a short meeting (no hard selling). Check DND before calling consumer numbers. |
+| **Phone calls (UK)** | PECR: screen against TPS/CTPS (Corporate TPS for businesses) before marketing calls. | Use *Never search in* / do-not-contact for numbers that opted out. |
+| **EU** | GDPR + national rules; many countries require prior consent for marketing calls. | Consider adding those countries to `skip_countries` / `restricted_countries`. |
+
+Never use the pipeline (or anything else) for robocalls, AI-voice cold calls or bulk automated DMs.
 
 Using OpenStreetMap data: © OpenStreetMap contributors (ODbL). Public Nominatim/Overpass servers have fair-use policies;
 the pipeline sends one request at a time, identifies itself, and only searches when the lead queue is low.

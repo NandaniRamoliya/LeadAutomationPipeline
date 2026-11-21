@@ -1,55 +1,85 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Today</h1>
-<div class="grid">
-  <div class="card stat"><div class="n">{{ o.today.sent }}<span class="muted small"> / {{ o.today.cap }}</span></div><div class="l">emails sent today (cap incl. warm-up)</div></div>
-  <div class="card stat"><div class="n">{{ o.today.first_touch }}</div><div class="l">new leads contacted today</div></div>
-  <div class="card stat"><div class="n">{{ o.today.replies }}</div><div class="l">replies today</div></div>
-  <div class="card stat"><div class="n">{{ o.today.found }}</div><div class="l">businesses found today</div></div>
+<div class="card hero">
+  <div>
+    {% if status.engine_paused %}
+      <h1>⏸ Paused</h1><p class="muted">Nothing is searched, written or sent until you press Resume.</p>
+    {% elif status.alive %}
+      <h1>✅ Working for you, 24/7</h1>
+      <p class="muted">Finding businesses, researching them, sending at the right time and following up, automatically.
+      {% if status.mode != 'smtp' %}<br><b>Test mode:</b> emails are saved as files, not sent. Switch to live in Settings → Setup when ready.{% endif %}</p>
+    {% else %}
+      <h1>⛔ Not running</h1>
+      <p class="muted">Start it with <code>leadpipe start</code>, or let it run by itself in the background (button on the right).</p>
+    {% endif %}
+    <p class="small muted">Runs automatically when the computer starts: <b>{{ 'Yes' if service.installed else 'No' }}</b>{% if status.heartbeat %} · last activity {{ status.heartbeat|ago }}{% endif %}</p>
+  </div>
+  <div class="row">
+    {% if status.engine_paused %}
+      <form method="post" action="{{ url_for('engine_action', action='resume') }}"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="primary cta">▶ Resume</button></form>
+    {% else %}
+      <form method="post" action="{{ url_for('engine_action', action='pause') }}"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="cta">⏸ Pause everything</button></form>
+    {% endif %}
+    {% if not service.installed %}
+      <form method="post" action="{{ url_for('engine_action', action='install') }}"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="primary cta" title="Starts with your computer, restarts itself if it stops">Run in background always</button></form>
+    {% endif %}
+  </div>
 </div>
 
-<h2>Waiting on you</h2>
-<div class="grid">
-  <a class="card stat" href="{{ url_for('outbox') }}"><div class="n">{{ waiting.outbox }}</div><div class="l">emails to approve</div></a>
-  <a class="card stat" href="{{ url_for('outbox') }}"><div class="n">{{ waiting.replies }}</div><div class="l">replies to approve (hot!)</div></a>
-  <a class="card stat" href="{{ url_for('manual') }}"><div class="n">{{ waiting.manual }}</div><div class="l">manual DMs / calls due</div></a>
-  <a class="card stat" href="{{ url_for('replies') }}"><div class="n">{{ waiting.flagged }}</div><div class="l">replies flagged for you (7 days)</div></a>
+<div class="card hero" style="margin-top:14px">
+  <div>
+    <h2 style="margin:0">📋 Your to-do: {{ todo.total }} thing{{ '' if todo.total == 1 else 's' }}</h2>
+    <p class="muted small" style="margin:4px 0 0">
+      {% if todo.replies %}{{ todo.replies }} replies to answer · {% endif %}{% if todo.decide %}{{ todo.decide }} decisions · {% endif %}
+      {% if todo.calls %}{{ todo.calls }} calls · {% endif %}{% if todo.messages %}{{ todo.messages }} WhatsApp/social messages · {% endif %}
+      {% if todo.emails %}{{ todo.emails }} emails to approve · {% endif %}{% if todo.clients %}{{ todo.clients }} client steps{% endif %}
+      {% if not todo.total %}Nothing right now. The system is working on its own.{% endif %}
+    </p>
+  </div>
+  <a class="btn primary cta" href="{{ url_for('todo') }}">Open to-do →</a>
 </div>
 
-<h2>Last {{ o.days }} days</h2>
+<h2>This week</h2>
 <div class="grid">
-  <div class="card stat"><div class="n">{{ o.contacted }}</div><div class="l">people contacted</div></div>
-  <div class="card stat"><div class="n">{{ o.reply_rate }}%</div><div class="l">reply rate</div></div>
-  <div class="card stat"><div class="n">{{ o.positive_rate }}%</div><div class="l">positive replies</div></div>
-  <div class="card stat"><div class="n">{{ o.meetings }}</div><div class="l">calls booked</div></div>
-  <div class="card stat"><div class="n">{{ o.won }}</div><div class="l">deals won{% if o.revenue %} ({{ '%.0f'|format(o.revenue) }}){% endif %}</div></div>
-  <div class="card stat"><div class="n {{ 'bad' if o.bounce_rate > 5 }}">{{ o.bounce_rate }}%</div><div class="l">bounce rate (keep under 3%)</div></div>
+  <div class="card kpi"><div class="n">{{ o.contacted }}</div><div class="muted small">businesses contacted</div></div>
+  <div class="card kpi"><div class="n">{{ o.replied }}</div><div class="muted small">replied ({{ o.reply_rate }}%)</div></div>
+  <div class="card kpi"><div class="n">{{ o.positive }}</div><div class="muted small">interested</div></div>
+  <div class="card kpi"><div class="n">{{ o.meetings }}</div><div class="muted small">calls booked</div></div>
+  <div class="card kpi"><div class="n">{{ o.won }}</div><div class="muted small">new clients</div></div>
 </div>
 
 <div class="grid2">
   <div>
-    <h2>Pipeline</h2>
-    <table class="funnel">
-      {% for f in funnel if f.count %}
-      <tr><td><a href="{{ url_for('contacts', stage=f.stage) }}">{{ f.label }}</a></td><td class="n">{{ f.count }}</td></tr>
-      {% else %}<tr><td class="muted">No contacts yet. Run a discovery below, or <code>leadpipe import leads.csv</code>.</td></tr>{% endfor %}
-    </table>
-    <h2>Companies</h2>
-    <p class="small muted">{% for k, v in companies.items() %}<a href="{{ url_for('leads', status=k) }}">{{ k }}: {{ v }}</a>{{ ' · ' if not loop.last }}{% endfor %}</p>
-    <h2>Run now</h2>
-    <div class="row">
-      {% for job, label in [('discover','Find new businesses'),('enrich','Research websites'),('write','Write drafts'),('inbox','Check replies'),('onboarding','Advance onboarding')] %}
-      <form class="inline" method="post" action="{{ url_for('run_job', job=job) }}"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="small">{{ label }}</button></form>
-      {% endfor %}
+    <h2>🌍 Where we're reaching</h2>
+    <div class="card">
+      {% if area %}
+        <div class="big"><b>Now: {{ area.name }}</b></div>
+        <div class="small muted">Part {{ area.tile }} of {{ area.tiles or '?' }} searched · {{ area.found }} businesses found here</div>
+        <div class="bar" style="margin:8px 0"><span style="width: {{ ((100 * area.tile / area.tiles) if area.tiles else 0)|round|int }}%"></span></div>
+      {% else %}<div class="muted">No area yet. Set your start area in <a href="{{ url_for('settings', tab='reach') }}">Settings</a>.</div>{% endif %}
+      {% if upcoming %}<div class="small">Next: {% for u in upcoming %}{{ u.name }}{{ ', ' if not loop.last }}{% endfor %}…</div>{% endif %}
+      <div class="small muted">{{ done_areas }} area{{ '' if done_areas == 1 else 's' }} finished · {{ companies }} businesses found in total ·
+        <a href="{{ url_for('settings', tab='reach') }}">change</a></div>
+    </div>
+    <h2>Your leads</h2>
+    <div class="card">
+      <div class="steps">
+        <a href="{{ url_for('leads', view='new') }}"><span>Not contacted {{ counts.new }}</span></a> →
+        <a href="{{ url_for('leads', view='reaching') }}"><span>Reaching out {{ counts.reaching }}</span></a> →
+        <a href="{{ url_for('leads', view='talking') }}"><span class="on">Talking {{ counts.talking }}</span></a> →
+        <a href="{{ url_for('leads', view='won') }}"><span class="on">Clients {{ counts.won }}</span></a>
+      </div>
+      <div class="small muted" style="margin-top:8px"><a href="{{ url_for('leads', view='later') }}">Later: {{ counts.later }}</a> ·
+        <a href="{{ url_for('leads', view='closed') }}">Closed: {{ counts.closed }}</a> · <a href="{{ url_for('insights') }}">What's working →</a></div>
     </div>
   </div>
   <div>
-    <h2>Activity</h2>
+    <h2>What just happened</h2>
     <table>
       {% for e in events %}
       <tr><td class="small muted" style="white-space:nowrap">{{ e.ts|ago }}</td>
-          <td class="small"><span class="pill {{ 'bad' if e.level=='error' else ('warn' if e.level=='warn' else '') }}">{{ e.kind }}</span>
-          {% if e.contact_id %}<a href="{{ url_for('contact', cid=e.contact_id) }}">{{ e.message|short(110) }}</a>{% else %}{{ e.message|short(110) }}{% endif %}</td></tr>
+          <td class="small">{% if e.level=='error' %}⚠️ {% endif %}
+          {% if e.contact_id %}<a href="{{ url_for('lead', cid=e.contact_id) }}">{{ e.message|short(120) }}</a>{% else %}{{ e.message|short(120) }}{% endif %}</td></tr>
       {% else %}<tr><td class="muted">Nothing yet.</td></tr>{% endfor %}
     </table>
   </div>

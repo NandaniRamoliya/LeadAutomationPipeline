@@ -117,6 +117,70 @@ SIGNALS: dict[str, dict[str, str]] = {
         "cost": "So there's no way to see how many people visit and how many actually get in touch.",
         "fix": "simple tracking so you can see which pages bring enquiries",
     },
+    "diy_builder": {
+        "label": "DIY site builder",
+        "explain": "Built on Wix / GoDaddy / Weebly / Google Sites: usually a self-made site.",
+        "problem": "Self-made site on a DIY builder",
+        "observation": "It looks like {website} was built on {builder}.",
+        "cost": "Those builders are a great start, but they usually load slowly and are hard to rank on Google.",
+        "fix": "a faster, professionally built site you fully own",
+    },
+    "agency_built": {
+        "label": "Built by an agency",
+        "explain": "Footer credits a web/marketing agency ('Website by ...').",
+        "problem": "Site built by an agency (may not be actively looked after)",
+        "observation": "I noticed {website} was built by {agency}.",
+        "cost": "When an agency has moved on to other clients, small issues like the ones I spotted tend to pile up.",
+        "fix": "a quick refresh and someone who actually looks after it",
+    },
+    "no_schema_markup": {
+        "label": "No schema markup",
+        "explain": "No structured data: Google can't show rich results (stars, hours, prices).",
+        "problem": "No structured data for Google",
+        "observation": "{website} has no structured data, so Google can't show your hours, ratings or prices in search.",
+        "cost": "Competitors with star ratings in search results get the click first.",
+        "fix": "adding schema markup so Google shows rich results",
+    },
+    "blog_stale": {
+        "label": "Blog abandoned",
+        "explain": "The blog's newest post is more than a year old.",
+        "problem": "Blog not updated since {last_post_year}",
+        "observation": "The newest post on the {company} blog seems to be from {last_post_year}.",
+        "cost": "An abandoned blog quietly tells visitors (and Google) the site isn't looked after.",
+        "fix": "a simple content plan, or removing the old blog",
+    },
+    "low_rating": {
+        "label": "Low Google rating",
+        "explain": "Average rating under 4.0 stars.",
+        "problem": "Google rating {rating} stars",
+        "observation": "{company} has a {rating}-star average on Google.",
+        "cost": "Most people filter for 4 stars and up, so many never even see the listing.",
+        "fix": "a simple system that asks happy customers for reviews",
+    },
+    "few_reviews": {
+        "label": "Few reviews",
+        "explain": "Fewer than 15 Google reviews.",
+        "problem": "Only {reviews} Google reviews",
+        "observation": "{company} only has {reviews} reviews on Google.",
+        "cost": "Businesses nearby with more reviews usually get picked first.",
+        "fix": "an automatic review request after every visit",
+    },
+    "startup_backed": {
+        "label": "Startup (accelerator)",
+        "explain": "Their own site says they're backed by YC / Techstars / similar.",
+        "problem": "Early-stage startup ({backer})",
+        "observation": "I saw that {company} is backed by {backer}.",
+        "cost": "At this stage, every week spent on things outside the core product is expensive.",
+        "fix": "taking this off your plate so the team can focus on the product",
+    },
+    "recently_funded": {
+        "label": "Recently raised",
+        "explain": "Their own site announces a funding round.",
+        "problem": "Just raised a {round}",
+        "observation": "Congratulations on the {round}!",
+        "cost": "Right after a raise, the pressure is on to grow fast without breaking what already works.",
+        "fix": "getting this in place quickly so it's ready for the growth",
+    },
     "no_live_chat": {
         "label": "No chat / WhatsApp button",
         "explain": "No chat widget or WhatsApp click-to-chat.",
@@ -126,6 +190,20 @@ SIGNALS: dict[str, dict[str, str]] = {
         "fix": "a WhatsApp chat button with quick auto-replies",
     },
 }
+
+
+# Short noun phrase per signal, for sentences like "If online booking ever becomes a priority".
+TOPICS = {"no_website": "a website", "site_broken": "your website", "instagram_only": "a proper website",
+          "no_online_booking": "online booking", "not_mobile_friendly": "a mobile-friendly site", "slow_site": "site speed",
+          "no_https": "website security", "outdated_site": "a website refresh", "running_ads": "your ad landing page",
+          "hiring": "automating admin work", "no_contact_form": "an enquiry form", "weak_seo": "Google visibility",
+          "no_analytics": "website tracking", "no_live_chat": "WhatsApp chat on your site", "diy_builder": "a faster website",
+          "agency_built": "your website", "no_schema_markup": "Google rich results", "blog_stale": "your blog",
+          "low_rating": "your Google reviews", "few_reviews": "more Google reviews", "startup_backed": "this",
+          "recently_funded": "this"}
+for _k, _t in TOPICS.items():
+    if _k in SIGNALS:
+        SIGNALS[_k]["topic"] = _t
 
 
 class SafeDict(dict):
@@ -192,8 +270,8 @@ SEQUENCE_TEMPLATES: dict[str, list[tuple[str | None, str]]] = {
     ],
     "breakup": [
         (None, "{greeting}\n\nI haven't heard back, so I'll assume the timing isn't right and won't keep emailing.\n\n"
-               "If {problem1_lc} ever moves up the list, just reply here and I'll pick it up. All the best to the team at {company}."),
-        (None, "{greeting}\n\nLast note from me, I don't want to clutter your inbox. If fixing {problem1_lc} becomes a priority "
+               "If {topic1} ever moves up the list, just reply here and I'll pick it up. All the best to the team at {company}."),
+        (None, "{greeting}\n\nLast note from me, I don't want to clutter your inbox. If {topic1} becomes a priority "
                "later this year, reply anytime. Wishing {company} a great season."),
     ],
     # ---- warm: interested, no call booked yet --------------------------------
@@ -270,8 +348,49 @@ SEQUENCE_TEMPLATES: dict[str, list[tuple[str | None, str]]] = {
          "{greeting}\n\n{referrer} suggested I get in touch with you. I help businesses like {company} with {service}, "
          "and I noticed {obs1_lc}\n\nWould it be useful if I sent you {quick_win}?"),
     ],
+    # ---- DMs (WhatsApp / Instagram / LinkedIn / X / Facebook): short, no subject, no links ----
+    "dm_intro": [
+        (None, "Hi {first_or_team}! {obs1} {cost1_short}\n\nWould you like {quick_win}? No strings attached."),
+        (None, "Hi {first_or_team}, quick one: {obs1_lc} {cost1_short} Happy to send you {quick_win} if useful?"),
+    ],
+    "dm_touch": [
+        (None, "Hi {first_or_team}, I emailed you an idea about {topic1} for {company}. Messaging here in case it's easier. "
+               "Want me to send {quick_win}?"),
+    ],
+    "dm_followup": [
+        (None, "Hi {first_or_team}, one more idea for {company}: {fix2_or_fix1}. Should I send a quick mock-up?"),
+    ],
+    "dm_final": [
+        (None, "Last message from me, {first_or_team}. If {topic1} ever becomes a priority, just reply here. All the best!"),
+    ],
 }
 
+# Call scripts (phone tasks). Plain structure you can read from while dialling.
+CALL_TEMPLATES: dict[str, str] = {
+    "call_intro": (
+        "CALL {company}{phone_line}\n\n"
+        "1) OPENER: \"Hi, is this {first_or_owner}? This is {your_name} from {business_name}. I'll be quick, "
+        "I noticed something on your {online_presence} and have a small idea. Do you have 30 seconds?\"\n\n"
+        "2) WHY YOU'RE CALLING: {obs1}\n   What it costs them: {cost1}\n\n"
+        "3) ASK (listen more than you talk):\n   - How do most new customers find or book you today?\n"
+        "   - What happens when someone contacts you after hours?\n\n"
+        "4) OFFER: \"I can send you {quick_win}, free. Best on WhatsApp or email?\"\n\n"
+        "5) IF INTERESTED: book 15 minutes → {booking_link}\n\n"
+        "VOICEMAIL (20 sec): \"Hi, {your_name} from {business_name}. I noticed something about {topic1} and have a quick idea "
+        "for {company}. I'll send a short message, reply whenever it suits you. Thanks!\"\n\n"
+        "IF THEY SAY...\n   \"Not interested\" → \"No problem at all, thanks for your time.\" (log: Not interested)\n"
+        "   \"Send me details\" → \"Sure, what's the best WhatsApp number or email?\" (log: Interested)\n"
+        "   \"How much?\" → \"Usually {price_range}, depends on what you need. That's why 15 minutes helps.\"\n"
+        "   \"We have someone\" → \"Great, happy to give a free second opinion anytime.\""),
+    "call_followup": (
+        "CALL {company}{phone_line} (follow-up)\n\n"
+        "1) OPENER: \"Hi {first_or_owner}, {your_name} from {business_name}. I sent you a note about {topic1} for {company}. "
+        "Is now an OK time for 2 minutes?\"\n\n"
+        "2) GOAL: book the 15-minute call → {booking_link}\n   Offer two times: \"Would tomorrow 11am or Thursday 4pm work?\"\n\n"
+        "3) If they hesitate: \"What would you need to see to feel sure?\"\n\n"
+        "VOICEMAIL: \"Hi {first_or_owner}, {your_name} here. Just following up on {company}. I'll send the booking link by "
+        "message. Thanks!\""),
+}
 
 # ---------------------------------------------------------------------------
 # The Closer: replies to the most common answers. Every reply moves toward a 15-minute call.

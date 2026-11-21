@@ -90,12 +90,25 @@ def parse_message(raw: bytes) -> InboundMail:
 
 
 def fetch_new(db: DB, cfg: Config, since_days: int = 4, limit: int = 200) -> list[InboundMail]:
-    host = cfg.env("IMAP_HOST")
-    if not host:
-        return []
-    port = int(cfg.env("IMAP_PORT", "993") or 993)
-    user = cfg.env("IMAP_USER") or cfg.env("SMTP_USER")
-    password = cfg.env("IMAP_PASSWORD") or cfg.env("SMTP_PASSWORD")
+    """New mail from every mailbox that has IMAP settings."""
+    from .mailboxes import mailboxes
+    out: list[InboundMail] = []
+    seen_ids: set[str] = set()
+    for mb in mailboxes(cfg):
+        if not mb.imap_host:
+            continue
+        try:
+            for mail in _fetch_box(db, cfg, mb.imap_host, mb.imap_port, mb.imap_user, mb.imap_password, since_days, limit):
+                if mail.message_id not in seen_ids:
+                    seen_ids.add(mail.message_id)
+                    out.append(mail)
+        except Exception as exc:
+            db.log("inbox", f"[{mb.name}] IMAP check failed: {exc}", level="error")
+    return out
+
+
+def _fetch_box(db: DB, cfg: Config, host: str, port: int, user: str, password: str, since_days: int,
+               limit: int) -> list[InboundMail]:
     folders = [f.strip() for f in (cfg.env("IMAP_FOLDERS", "INBOX") or "INBOX").split(",") if f.strip()]
     since = (utcnow() - timedelta(days=since_days)).strftime("%d-%b-%Y")
     out: list[InboundMail] = []

@@ -46,6 +46,14 @@ TERMINAL_STAGES = {"lost", "unsubscribed", "bounced"}
 ACTIVE_CONVERSATION = {"interested", "meeting", "proposal", "won", "client"}
 
 
+def sequence_for(stage: str, contact: dict) -> str | None:
+    """Which follow-up track runs for this stage. Leads without an email address get the DM/call version."""
+    seq = STAGE_SEQUENCE.get(stage)
+    if seq == "cold" and not contact.get("email"):
+        return "cold_social"
+    return seq
+
+
 def steps_for(cfg: Config, sequence: str | None) -> list[dict]:
     if not sequence:
         return []
@@ -80,6 +88,8 @@ def is_suppressed(db: DB, email: str | None) -> bool:
         return False
     import hashlib
     email = email.strip().lower()
+    if "@" not in email:  # a phone number or social handle
+        return bool(db.scalar("SELECT 1 FROM suppression WHERE value = ?", (email,)))
     domain = "@" + email.split("@")[-1]
     digest = "sha256:" + hashlib.sha256(email.encode()).hexdigest()
     return bool(db.scalar("SELECT 1 FROM suppression WHERE value IN (?, ?, ?)", (email, domain, digest)))
@@ -97,7 +107,7 @@ def set_stage(db: DB, cfg: Config, contact_id: int, stage: str, reason: str = ""
     kinds = ("sequence", "reply", "onboarding", "manual") if stage in TERMINAL_STAGES else ("sequence",)
     cancel_pending(db, contact_id, kinds, f"moved to {stage}")
     start = start_at or utcnow()
-    sequence = STAGE_SEQUENCE.get(stage)
+    sequence = sequence_for(stage, contact)
     values: dict = {"stage": stage, "sequence": sequence, "step": 0,
                     "sequence_started_at": iso(start) if sequence else None, "next_action_at": None}
     steps = steps_for(cfg, sequence)
@@ -139,6 +149,26 @@ def advance_after_send(db: DB, cfg: Config, message: dict) -> None:
     db.update("contacts", contact["id"], values)
 
 
+def skip_step(db: DB, cfg: Config, contact: dict, reason: str) -> None:
+    """Move past the current step without sending anything (channel not available, not worth a task...).
+    The next step keeps its spacing relative to the *previous* touch, so the rhythm doesn't speed up."""
+    steps = steps_for(cfg, contact.get("sequence"))
+    cur = int(contact.get("step") or 0)
+    nxt = cur + 1
+    base = parse_iso(contact.get("next_action_at")) or utcnow()
+    if nxt < len(steps):
+        gap = float(steps[nxt].get("day", 0)) - float(steps[cur].get("day", 0))
+        when = max(base + timedelta(days=max(gap, 0)), utcnow())
+    else:
+        when = base + timedelta(days=float(cfg.get(f"sequences.{contact['sequence']}.close_after_days", 7) or 0))
+    db.update("contacts", contact["id"], {"step": nxt, "next_action_at": iso(when)})
+    db.log("sequence", f"skipped step {cur + 1} of {contact.get('sequence')}: {reason}", contact_id=contact["id"])
+
+
+def postpone(db: DB, contact_id: int, hours: float, reason: str = "") -> None:
+    db.update("contacts", contact_id, {"next_action_at": iso(utcnow() + timedelta(hours=hours))})
+
+
 def process_timers(db: DB, cfg: Config) -> int:
     """Close finished tracks (no reply after the last step) and move booked calls to the proposal track."""
     now = now_iso()
@@ -173,12 +203,15 @@ def enroll_new_contacts(db: DB, cfg: Config) -> int:
     rows = db.all(
         """SELECT ct.* FROM contacts ct JOIN companies co ON co.id = ct.company_id
            WHERE ct.stage = 'new' AND co.status = 'qualified'
-           ORDER BY co.score DESC, ct.id LIMIT ?""", (room * 3,))
+           ORDER BY co.priority DESC, co.score DESC, ct.id LIMIT ?""", (room * 3,))
     enrolled = 0
     for c in rows:
         if enrolled >= room:
             break
         if c["channel"] == "email" and (not c["email"] or is_suppressed(db, c["email"])):
+            continue
+        if c["channel"] in ("social", "manual") and db.scalar(
+                "SELECT 1 FROM contacts WHERE company_id=? AND id != ? AND stage NOT IN ('new','lost')", (c["company_id"], c["id"])):
             continue
         set_stage(db, cfg, c["id"], "cold", "enrolled")
         enrolled += 1

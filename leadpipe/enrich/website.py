@@ -32,7 +32,35 @@ CHAT_HINTS = ["wa.me/", "api.whatsapp.com", "whatsapp://", "tawk.to", "intercom"
 HIRING_HINTS = ["careers", "we're hiring", "we are hiring", "join our team", "vacancies", "job openings", "/jobs",
                 "current openings", "work with us"]
 SUBPAGE_HINTS = ["contact", "about", "team", "our-team", "people", "staff", "doctors", "founder", "careers", "jobs",
-                 "reach-us", "get-in-touch", "who-we-are", "leadership"]
+                 "reach-us", "get-in-touch", "who-we-are", "leadership", "blog", "news"]
+# Ordering of sub-pages: people + contact pages first, blog last.
+SUBPAGE_RANK = ["contact", "team", "about", "people", "staff", "doctors", "founder", "leadership", "who-we-are",
+                "reach-us", "get-in-touch", "careers", "jobs", "blog", "news"]
+AGENCY_RE = re.compile(r"(?:website|site|web design|designed|developed|built|created|crafted|made|powered|maintained|"
+                       r"managed|marketing|seo)\s*(?:&\s*\w+\s*)?(?:by|with)\s*:?\s*$", re.I)
+PLATFORMS = {"wordpress", "wix", "shopify", "squarespace", "godaddy", "weebly", "webflow", "joomla", "drupal",
+             "blogger", "jimdo", "hostinger", "zoho", "google", "cloudflare", "bootstrap", "elementor", "divi",
+             "themeforest", "astra", "oceanwp", "hubspot", "duda", "strikingly", "carrd", "framer", "ghost", "github"}
+TECH_HINTS = {"WordPress": ["wp-content", "wp-includes"], "Wix": ["static.wixstatic.com", "wix.com"],
+              "Squarespace": ["squarespace.com", "static1.squarespace"], "Shopify": ["cdn.shopify.com", "myshopify"],
+              "Webflow": ["webflow.com", "assets.website-files.com"], "GoDaddy Builder": ["img1.wsimg.com", "godaddysites"],
+              "Weebly": ["weebly.com"], "Joomla": ["/media/jui/", "joomla"], "Drupal": ["drupal.js", "/sites/default/files"],
+              "Google Sites": ["sites.google.com"], "Zoho Sites": ["zohositescontent", "zoho.com/sites"]}
+DIY_BUILDERS = {"Wix", "GoDaddy Builder", "Weebly", "Google Sites", "Zoho Sites"}
+ATS_RE = {
+    "greenhouse": re.compile(r"(?:boards|job-boards)\.greenhouse\.io/(?:embed/job_board\?for=)?([A-Za-z0-9_\-]+)", re.I),
+    "lever": re.compile(r"jobs\.lever\.co/([A-Za-z0-9_\-]+)", re.I),
+    "ashby": re.compile(r"jobs\.ashbyhq\.com/([A-Za-z0-9_\-.%]+)", re.I),
+    "workable": re.compile(r"apply\.workable\.com/([A-Za-z0-9_\-]+)", re.I),
+}
+STARTUP_RE = re.compile(r"\b(?:backed by|part of|alumni of|went through|graduated from|funded by)\s+(?:the\s+)?"
+                        r"(Y Combinator|Techstars|500 Startups|500 Global|Antler|Sequoia(?: Surge)?|Entrepreneur First|"
+                        r"Plug and Play|a16z)\b|\(\s*(?:YC|Y Combinator)\s+([WSF]\d{2})\s*\)", re.I)
+FUNDING_RE = re.compile(r"\b(?:we(?:'ve| have)? raised|announces?|closed|secured)\s+(?:a\s+)?(?:\$|₹|€|£|US\$|INR\s?|USD\s?)"
+                        r"\s?([\d.,]+\s?(?:k|m|mn|million|cr|crore|b|bn|billion)?)\s+(pre-seed|seed|series [a-e]|funding round|round)", re.I)
+BLOG_DATE_RE = re.compile(r"\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s+\d{1,2},?\s+((?:19|20)\d{2})\b|"
+                          r"\b\d{1,2}\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?,?\s+((?:19|20)\d{2})\b|"
+                          r"\b((?:19|20)\d{2})-\d{2}-\d{2}\b", re.I)
 ROLE_WORDS = (r"Founder|Co-Founder|Cofounder|Owner|Co-Owner|CEO|Chief Executive Officer|Managing Director|Director|"
               r"Principal|Proprietor|Managing Partner|Partner|Head Chef|Chef-Owner|Medical Director|Clinic Director|"
               r"General Manager|Practice Manager")
@@ -54,6 +82,9 @@ class SiteAudit:
     signals: dict = field(default_factory=dict)
     emails: list[str] = field(default_factory=list)
     people: list[dict] = field(default_factory=list)
+    socials: dict = field(default_factory=dict)
+    phones: list[str] = field(default_factory=list)
+    tech: str | None = None
     summary: str = ""
     pages_read: int = 0
     error: str | None = None
@@ -194,6 +225,10 @@ def audit_website(url: str | None, timeout: float = 12, max_pages: int = 5,
         label = (href + " " + a.get_text(" ", strip=True)).lower()
         if any(h in label for h in SUBPAGE_HINTS):
             links.append(full.split("#")[0])
+    def _rank(u: str) -> int:
+        low_u = u.lower()
+        return next((i for i, h in enumerate(SUBPAGE_RANK) if h in low_u), len(SUBPAGE_RANK))
+    links.sort(key=_rank)
     for link in links[: max(max_pages - 1, 0)]:
         r, _, _ = _fetch(session, link, timeout)
         if r is not None and r.ok and "html" in r.headers.get("content-type", "html"):
@@ -238,5 +273,105 @@ def audit_website(url: str | None, timeout: float = 12, max_pages: int = 5,
                 emails.append(e)
     audit.emails = emails
     audit.people = extract_people(all_text, all_html)
+
+    # ---- channels: social profiles, WhatsApp, phone numbers -------------------
+    from ..channels import extract_socials
+    hrefs = [a.get("href", "") for sp in soups for a in sp.select("a[href]")]
+    audit.socials = extract_socials(hrefs)
+    phones = []
+    for h in hrefs:
+        if h.lower().startswith("tel:"):
+            num = h[4:].strip()
+            if num and num not in phones:
+                phones.append(num)
+    audit.phones = phones[:3]
+
+    # ---- who built it / what it's built with -------------------------------------
+    for name, hints in TECH_HINTS.items():
+        if any(x in low for x in hints):
+            audit.tech = name
+            break
+    if audit.tech in DIY_BUILDERS:
+        audit.signals["diy_builder"] = {"builder": audit.tech}
+    agency = find_agency(home_soup)
+    if agency:
+        audit.signals["agency_built"] = {"agency": agency}
+
+    # ---- SEO / content -------------------------------------------------------------
+    if "application/ld+json" not in low and "itemtype=" not in low:
+        audit.signals["no_schema_markup"] = "no structured data (schema.org)"
+    for h, sp, t in zip(html_pages[1:], soups[1:], texts[1:]):
+        if any(k in (sp.title.get_text(" ", strip=True).lower() if sp.title else "") for k in ("blog", "news", "article")) \
+                or "/blog" in h[:3000].lower():
+            years = [int(next(y for y in g if y)) for g in BLOG_DATE_RE.findall(t)]
+            if years and max(years) < this_year - 1:
+                audit.signals["blog_stale"] = {"last_post_year": str(max(years))}
+            break
+
+    # ---- hiring (job boards their site links to) ------------------------------------
+    roles = ats_roles(all_html, timeout)
+    if roles:
+        audit.signals["hiring"] = {"roles": ", ".join(roles[:3]), "open_roles": len(roles)}
+    elif "hiring" in audit.signals:
+        audit.signals["hiring"] = "careers/jobs page found"
+
+    # ---- startup signals (only the company's own words) ---------------------------------
+    m = STARTUP_RE.search(all_text)
+    if m:
+        audit.signals["startup_backed"] = {"backer": m.group(1) or f"Y Combinator {m.group(2)}"}
+    m = FUNDING_RE.search(all_text)
+    if m:
+        audit.signals["recently_funded"] = {"round": f"{m.group(2)} ({m.group(1)})"}
     audit.summary = " | ".join(x for x in [title, desc, (texts[0] if texts else "")[:600]] if x)[:1200]
     return audit
+
+
+def find_agency(soup: BeautifulSoup) -> str | None:
+    """'Website by Pixel Studio' in the footer -> 'Pixel Studio'. Only credited, labelled links count."""
+    footer = soup.find("footer") or soup
+    for a in footer.select("a[href]"):
+        name = a.get_text(" ", strip=True)
+        if not name or len(name) > 40 or name.lower() in PLATFORMS or any(p in name.lower() for p in PLATFORMS):
+            continue
+        before = ""
+        prev = a.previous_sibling
+        hops = 0
+        while prev is not None and hops < 3 and len(before) < 80:
+            before = (prev.get_text(" ", strip=True) if hasattr(prev, "get_text") else str(prev)) + " " + before
+            prev = prev.previous_sibling
+            hops += 1
+        if not before.strip() and a.parent is not None:
+            before = a.parent.get_text(" ", strip=True).split(name)[0]
+        if AGENCY_RE.search(before.strip()[-60:]):
+            return name
+    return None
+
+
+def ats_roles(html: str, timeout: float = 10) -> list[str]:
+    """Open roles from a job board the company's own site links to (Greenhouse, Lever, Ashby, Workable)."""
+    feeds = {
+        "greenhouse": "https://boards-api.greenhouse.io/v1/boards/{t}/jobs",
+        "lever": "https://api.lever.co/v0/postings/{t}?mode=json",
+        "ashby": "https://api.ashbyhq.com/posting-api/job-board/{t}",
+        "workable": "https://apply.workable.com/api/v1/widget/accounts/{t}",
+    }
+    for board, rx in ATS_RE.items():
+        m = rx.search(html)
+        if not m:
+            continue
+        try:
+            r = requests.get(feeds[board].format(t=m.group(1)), timeout=timeout, headers=HEADERS)
+            if not r.ok:
+                return []
+            data = r.json()
+        except (requests.RequestException, ValueError):
+            return []
+        if board == "greenhouse":
+            return [j.get("title", "") for j in data.get("jobs", []) if j.get("title")]
+        if board == "lever":
+            return [j.get("text", "") for j in (data if isinstance(data, list) else []) if j.get("text")]
+        if board == "ashby":
+            return [j.get("title", "") for j in data.get("jobs", []) if j.get("title")]
+        if board == "workable":
+            return [j.get("title", "") for j in data.get("jobs", []) if j.get("title")]
+    return []

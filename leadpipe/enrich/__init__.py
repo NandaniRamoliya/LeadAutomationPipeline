@@ -1,22 +1,24 @@
-"""Research job: audit each new company, find the right people + emails, verify, score, qualify."""
+"""Research job: audit each new company, find the right people + emails + other channels, verify, score, qualify."""
 from __future__ import annotations
 
 import json
 import logging
 
+from ..channels import available, parse_phone
 from ..config import Config
 from ..db import DB, now_iso
 from ..llm import LLM
 from ..pipeline import is_suppressed
 from ..templates import SIGNALS
+from .patterns import apply_pattern, learn_pattern
 from .verify import is_sendable, verify_email
 from .website import SiteAudit, audit_website
 
 log = logging.getLogger("leadpipe.enrich")
 
 FREE_MAIL = {"gmail.com", "yahoo.com", "yahoo.co.in", "hotmail.com", "outlook.com", "live.com", "icloud.com",
-             "rediffmail.com", "aol.com", "proton.me", "protonmail.com", "zoho.com", "gmx.com"}
-DECISION_ROLES = ("founder", "owner", "ceo", "director", "principal", "proprietor", "partner", "doctor", "manager")
+             "rediffmail.com", "aol.com", "proton.me", "protonmail.com", "zoho.com", "gmx.com", "ymail.com"}
+OWNER_WORDS = ("founder", "owner", "ceo", "proprietor", "principal", "managing", "director", "partner", "president", "doctor")
 
 AUDIT_SYSTEM = ("You are a careful website auditor working for a freelancer. From the verified data only, write the 2 "
                 "most important, specific problems this business has that the freelancer's service fixes, in plain "
@@ -25,18 +27,21 @@ AUDIT_SCHEMA = {"type": "object", "properties": {"problems": {"type": "array", "
                 "required": ["problems"], "additionalProperties": False}
 
 
-def score_company(cfg: Config, signals: dict, has_named_person: bool, best_status: str | None) -> float:
+def score_company(cfg: Config, signals: dict, has_named_person: bool, best_status: str | None, priority: bool = False) -> float:
     weights = cfg.section("signals")
     score = sum(float(weights.get(k, 0) or 0) for k in signals)
     if has_named_person:
         score += 10
     if best_status == "valid":
         score += 5
+    if priority:
+        score += float(cfg.get("enrichment.priority_bonus", 30))
     return round(min(score, 100.0), 1)
 
 
 def _rank_emails(emails: list[str], domain: str | None, people: list[dict]) -> list[tuple[str, dict | None]]:
     """Personal same-domain emails matched to a person first, then other same-domain, then free-mail."""
+    from .patterns import name_parts
     ranked: list[tuple[int, str, dict | None]] = []
     for e in emails:
         local, _, edom = e.partition("@")
@@ -44,16 +49,34 @@ def _rank_emails(emails: list[str], domain: str | None, people: list[dict]) -> l
             continue  # someone else's address (web agency, plugin vendor...)
         person = None
         for p in people:
-            first = p["full_name"].replace("Dr. ", "").replace("Dr ", "").split()[0].lower()
+            parts = name_parts(p["full_name"])
+            first = parts[0] if parts else p["full_name"].split()[0].lower()
             if len(first) > 2 and first in local:
                 person = p
                 break
-        rank = 0 if person else (2 if local in ("info", "contact", "hello", "office") else 1)
+        rank = 0 if person else (3 if local in ("info", "contact", "hello", "office", "enquiry", "enquiries") else 2)
         if edom in FREE_MAIL:
             rank += 1
         ranked.append((rank, e, person))
     ranked.sort(key=lambda r: r[0])
     return [(e, p) for _, e, p in ranked]
+
+
+def _first_name(full: str | None) -> str | None:
+    if not full:
+        return None
+    first = full.replace("Dr. ", "Dr ").split()[0]
+    return ("Dr " + full.split()[-1]) if first == "Dr" else first
+
+
+def reputation_signals(company: dict) -> dict:
+    sig = {}
+    r, n = company.get("rating"), company.get("reviews")
+    if r is not None and float(r) > 0 and float(r) < 4.0:
+        sig["low_rating"] = {"rating": f"{float(r):.1f}"}
+    if n is not None and int(n) < 15:
+        sig["few_reviews"] = {"reviews": str(int(n))}
+    return sig
 
 
 def enrich_company(db: DB, cfg: Config, company: dict, llm: LLM | None = None,
@@ -64,20 +87,74 @@ def enrich_company(db: DB, cfg: Config, company: dict, llm: LLM | None = None,
         if not site and company.get("instagram"):
             site = company["instagram"]
         audit = audit_website(site, timeout=float(ecfg.get("request_timeout", 12)),
-                              max_pages=int(ecfg.get("max_pages_per_site", 5)))
+                              max_pages=int(ecfg.get("max_pages_per_site", 6)))
     signals = dict(audit.signals)
+    signals.update(reputation_signals(company))
+    roles_wanted = [r.lower() for r in (ecfg.get("hiring_roles") or []) if r]
+    if roles_wanted and isinstance(signals.get("hiring"), dict):
+        hits = [r for r in str(signals["hiring"].get("roles", "")).split(", ") if any(w in r.lower() for w in roles_wanted)]
+        if hits:
+            signals["hiring"]["roles"] = ", ".join(hits)
+        else:
+            signals.pop("hiring")
     domain = company.get("domain")
 
+    # Channels found on the site: fill in what the listing didn't have.
+    extra: dict = {}
+    for ch in ("instagram", "facebook", "linkedin", "twitter", "whatsapp"):
+        if audit.socials.get(ch) and not company.get(ch):
+            extra[ch] = audit.socials[ch]
+    if not company.get("phone") and audit.phones:
+        ph = parse_phone(audit.phones[0], company.get("country"))
+        if ph:
+            extra["phone"] = ph["e164"]
+    if audit.tech:
+        extra["tech"] = audit.tech
+    if extra:
+        db.update("companies", company["id"], extra)
+        company = {**company, **extra}
+
     candidates = list(audit.emails)
-    if company.get("listed_email"):
+    if company.get("listed_email") and company["listed_email"] not in candidates:
         candidates.insert(0, company["listed_email"])
     ranked = _rank_emails(candidates, domain, audit.people)
 
     max_contacts = int(ecfg.get("max_contacts_per_company", 2))
+    existing = db.all("SELECT * FROM contacts WHERE company_id = ?", (company["id"],))
+    slots = max_contacts - len([c for c in existing if c.get("email")])
     created: list[int] = []
     best_status = None
+
+    def add_contact(email: str, status: str, reason: str, source: str, person: dict | None) -> None:
+        full = person["full_name"] if person else None
+        created.append(db.insert("contacts", {
+            "company_id": company["id"], "full_name": full, "first_name": _first_name(full),
+            "role": person["role"] if person else None, "email": email, "email_status": status,
+            "email_source": source, "channel": "email", "stage": "new", "notes": reason}))
+
+    # 1. The owner/decision-maker's own address: published, or built from the company's email pattern.
+    owners = sorted(audit.people, key=lambda p: 0 if any(w in p.get("role", "").lower() for w in OWNER_WORDS) else 1)
+    pattern = learn_pattern(candidates, audit.people, domain) if domain else None
+    for person, (email, matched) in [(p, next(((e, m) for e, m in ranked if m is p), (None, None))) for p in owners[:2]]:
+        if slots - len(created) <= 0:
+            break
+        if not email and pattern and domain:
+            email = apply_pattern(pattern, person, audit.people, domain)
+            if email and not is_suppressed(db, email) and not db.scalar("SELECT 1 FROM contacts WHERE email=?", (email,)):
+                v = verify_email(email, cfg, pattern=True)
+                if v.status != "invalid":
+                    best_status = best_status or v.status
+                    add_contact(email, v.status, f"{v.reason} ({pattern})", "pattern", person)
+            continue
+        if email and not is_suppressed(db, email) and not db.scalar("SELECT 1 FROM contacts WHERE email=?", (email,)):
+            v = verify_email(email, cfg)
+            if v.status != "invalid":
+                best_status = best_status or v.status
+                add_contact(email, v.status, v.reason, "website", person)
+
+    # 2. Other published addresses (personal first, then info@/contact@).
     for email, person in ranked:
-        if len(created) >= max_contacts:
+        if len(created) >= slots:
             break
         if is_suppressed(db, email) or db.scalar("SELECT 1 FROM contacts WHERE email = ?", (email,)):
             continue
@@ -85,48 +162,43 @@ def enrich_company(db: DB, cfg: Config, company: dict, llm: LLM | None = None,
         if v.status == "invalid":
             continue
         best_status = best_status or v.status
-        person = person or (audit.people[0] if audit.people and not created and v.status == "risky" else None)
-        full = person["full_name"] if person else None
-        first = full.replace("Dr. ", "Dr ").split()[0] if full else None
-        if first == "Dr" and full:
-            first = "Dr " + full.split()[-1]
-        created.append(db.insert("contacts", {
-            "company_id": company["id"], "full_name": full, "first_name": first,
-            "role": person["role"] if person else None, "email": email, "email_status": v.status,
-            "email_source": "website" if email in audit.emails else "listing", "channel": "email", "stage": "new",
-            "notes": v.reason}))
+        if not person and v.status == "risky" and not created and audit.people:
+            person = owners[0] if owners else None  # greet the owner by name on the general inbox
+        add_contact(email, v.status, v.reason, "website" if email in audit.emails else "listing", person)
 
-    # Guessed address for a named decision-maker when nothing else was found
-    if not created and audit.people and domain and ecfg.get("allow_guessed_emails"):
-        p = audit.people[0]
-        first = p["full_name"].replace("Dr. ", "").split()[0].lower()
-        guess = f"{first}@{domain}"
-        v = verify_email(guess, cfg, guessed=True)
-        if v.status != "invalid" and not db.scalar("SELECT 1 FROM contacts WHERE email = ?", (guess,)):
-            best_status = v.status
-            created.append(db.insert("contacts", {
-                "company_id": company["id"], "full_name": p["full_name"], "first_name": p["full_name"].split()[0],
-                "role": p["role"], "email": guess, "email_status": v.status, "email_source": "guess",
-                "channel": "email", "stage": "new", "notes": v.reason}))
+    # 3. Blind guess (only if allowed) when nothing else was found.
+    if not created and not existing and audit.people and domain and ecfg.get("allow_guessed_emails"):
+        from .patterns import name_parts
+        parts = name_parts(owners[0]["full_name"])
+        if parts:
+            guess = f"{parts[0]}@{domain}"
+            v = verify_email(guess, cfg, guessed=True)
+            if v.status != "invalid" and not db.scalar("SELECT 1 FROM contacts WHERE email = ?", (guess,)):
+                best_status = v.status
+                add_contact(guess, v.status, v.reason, "guess", owners[0])
 
-    # Also count contacts that existed already (e.g. from a CSV import)
     existing = db.all("SELECT * FROM contacts WHERE company_id = ?", (company["id"],))
-    sendable = [c for c in existing if c["channel"] == "email" and is_sendable(c["email_status"], cfg)]
+    sendable = [c for c in existing if c.get("email") and is_sendable(c["email_status"], cfg)]
     if not best_status and sendable:
         best_status = sendable[0]["email_status"]
-    has_person = any(c.get("full_name") for c in existing)
-    score = score_company(cfg, signals, has_person, best_status)
+    has_person = any(c.get("full_name") for c in existing) or bool(audit.people)
+    score = score_company(cfg, signals, has_person, best_status, bool(company.get("priority")))
 
-    # Manual channel (phone / Instagram DM) when there is no usable email
-    if not sendable and ecfg.get("manual_outreach", True) and (company.get("phone") or company.get("instagram")) \
-            and not any(c["channel"] == "manual" for c in existing):
-        db.insert("contacts", {"company_id": company["id"], "channel": "manual", "stage": "new",
-                               "email_status": "none", "notes": "no email found: reach by phone / Instagram DM"})
+    # No usable email: one "social" contact reached by WhatsApp / Instagram / LinkedIn / call tasks.
+    chans = available(company, None, cfg)
+    if not sendable and chans and not any(c["channel"] in ("social", "manual") for c in existing):
+        owner = owners[0] if owners else None
+        db.insert("contacts", {"company_id": company["id"], "channel": "social", "stage": "new", "email_status": "none",
+                               "full_name": owner["full_name"] if owner else None,
+                               "first_name": _first_name(owner["full_name"]) if owner else None,
+                               "role": owner["role"] if owner else None,
+                               "notes": "no email: reach by " + ", ".join(k for k in chans)})
         existing = db.all("SELECT * FROM contacts WHERE company_id = ?", (company["id"],))
 
-    problems = [SIGNALS[k]["problem"] for k in sorted(signals, key=lambda k: -float(cfg.get(f"signals.{k}", 0) or 0))
+    from ..templates import fill
+    problems = [fill(SIGNALS[k]["problem"], signals[k] if isinstance(signals[k], dict) else {})
+                for k in sorted(signals, key=lambda k: -float(cfg.get(f"signals.{k}", 0) or 0))
                 if k in SIGNALS and float(cfg.get(f"signals.{k}", 0) or 0) > 0][:3]
-    llm = llm if llm is not None else None
     if llm and llm.available and score >= float(ecfg.get("min_score", 25)) and audit.ok:
         out = llm.json(AUDIT_SYSTEM, json.dumps({
             "freelancer_service": cfg.get("profile.service_long"), "business": company.get("name"),
@@ -136,15 +208,15 @@ def enrich_company(db: DB, cfg: Config, company: dict, llm: LLM | None = None,
             problems = [str(p)[:140] for p in out["problems"][:2]] + problems[:1]
 
     restricted = {c.upper() for c in (cfg.get("compliance.restricted_countries") or [])}
-    reachable = sendable or any(c["channel"] == "manual" for c in existing)
+    reachable = bool(sendable) or any(c["channel"] in ("social", "manual") for c in existing)
     if (company.get("country") or "").upper() in restricted:
         status, reason = "disqualified", f"country {company.get('country')} is restricted in compliance settings"
     elif not reachable:
-        status, reason = "disqualified", "no usable email, phone or Instagram"
-    elif score < float(ecfg.get("min_score", 25)):
-        status, reason = "disqualified", f"score {score} below min_score"
+        status, reason = "disqualified", "no email, phone or social profile found"
+    elif score < float(ecfg.get("min_score", 25)) and not company.get("priority"):
+        status, reason = "disqualified", f"score {score} below min_score (few problems your service fixes)"
     else:
-        status, reason = "qualified", f"score {score}"
+        status, reason = "qualified", f"score {score}" + (" (high-value)" if company.get("priority") else "")
     if status == "disqualified":
         for c in existing:
             if c["stage"] == "new":
@@ -153,14 +225,15 @@ def enrich_company(db: DB, cfg: Config, company: dict, llm: LLM | None = None,
     db.update("companies", company["id"], {
         "signals": json.dumps(signals, default=str), "problems": json.dumps(problems), "score": score,
         "status": status, "status_reason": reason, "site_summary": audit.summary, "enriched_at": now_iso()})
-    db.log("enrich", f"{company['name']}: {status} ({reason}); signals: {', '.join(signals) or 'none'}; "
-           f"contacts: {len(created)} new", company_id=company["id"])
+    db.log("enrich", f"{company['name']}: {status} ({reason}); found: {', '.join(signals) or 'nothing'}; "
+           f"channels: {', '.join(available(company, None, cfg)) or 'email only'}; {len(created)} new contacts",
+           company_id=company["id"])
     return db.company(company["id"])  # type: ignore[return-value]
 
 
 def enrich_pending(db: DB, cfg: Config, limit: int | None = None, llm: LLM | None = None) -> int:
     n = int(limit or cfg.get("enrichment.per_cycle", 15))
-    rows = db.all("SELECT * FROM companies WHERE status = 'new' ORDER BY id LIMIT ?", (n,))
+    rows = db.all("SELECT * FROM companies WHERE status = 'new' ORDER BY priority DESC, id LIMIT ?", (n,))
     for c in rows:
         try:
             enrich_company(db, cfg, c, llm=llm)

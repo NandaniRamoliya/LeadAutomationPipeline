@@ -19,8 +19,8 @@ TEST_CONFIG = {
         "quick_win": "a free 2-minute video audit of your website", "booking_link": "https://cal.com/asha/15min",
         "signature": "Asha Patel\nPixel Studio", "physical_address": "12 MG Road, Pune 411001, India",
     },
-    "targets": [{"name": "pune-dentists", "area": "Pune, India", "categories": ["dentist"],
-                 "timezone": "Asia/Kolkata", "country": "IN", "limit": 10}],
+    "reach": {"business_types": ["dentist"], "start_area": "Pune, India", "world_rollout": True,
+              "countries": ["AE", "GB"]},
     "llm": {"provider": "none"},
     "engine": {"timezone": "Asia/Kolkata"},
     "sending": {"mode": "dry_run"},
@@ -30,7 +30,8 @@ TEST_CONFIG = {
 @pytest.fixture
 def cfg(tmp_path, monkeypatch):
     for k in ("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "SMTP_HOST", "IMAP_HOST", "DASHBOARD_PASSWORD",
-              "HUNTER_API_KEY", "NOTIFY_WEBHOOK_URL", "TELEGRAM_BOT_TOKEN"):
+              "HUNTER_API_KEY", "NOTIFY_WEBHOOK_URL", "TELEGRAM_BOT_TOKEN", "SERPER_API_KEY", "GOOGLE_PLACES_API_KEY",
+              "SMTP_USER", "FROM_NAME", "BOOKING_WEBHOOK_TOKEN"):
         monkeypatch.delenv(k, raising=False)
     monkeypatch.setenv("FROM_EMAIL", "asha@getpixelstudio.test")
     monkeypatch.setenv("LEADPIPE_DATA_DIR", str(tmp_path / "data"))

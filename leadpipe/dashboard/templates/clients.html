@@ -2,19 +2,20 @@
 {% block title %}Clients · Lead Pipeline{% endblock %}
 {% block content %}
 <h1>Clients</h1>
-<p class="muted small">Contract → Payment → Welcome document → Kickoff call → Access → Client portal. Once the portal link is sent, the client moves to the client-care track: check-in at 2 weeks, testimonial at 30 days, referral ask at 60 days, next-project idea at 120 days.</p>
+<p class="muted">When someone says yes: Contract → Payment → Welcome document → Kickoff call → Access → Client portal.
+Each message is written for you at the right moment, with reminders if a step gets stuck. After that, client care runs by itself:
+a check-in at 2 weeks, a testimonial request at 30 days, a referral ask at 60 days and a next-project idea at 120 days.</p>
 <div class="table-wrap"><table>
-  <tr><th>Client</th><th>Won</th><th>Value</th><th>Status</th><th>Progress</th><th>Next step</th></tr>
+  <tr><th>Client</th><th>Won</th><th>Value</th><th>Progress</th><th>Next step</th></tr>
   {% for d in deals %}
   {% set cl = jloads(d.checklist, {}) %}
   <tr>
-    <td><a href="{{ url_for('contact', cid=d.contact_id) }}"><b>{{ d.company }}</b></a><div class="small muted">{{ d.full_name or d.email }}</div></td>
+    <td><a href="{{ url_for('lead', cid=d.contact_id) }}"><b>{{ d.company }}</b></a><div class="small muted">{{ d.full_name or d.email or '' }}</div></td>
     <td class="small">{{ d.won_at|ago }}</td>
     <td class="small">{{ '%.0f'|format(d.value) if d.value else '' }} {{ d.currency or '' }}</td>
-    <td><span class="pill {{ 'ok' if d.status=='active' else 'acc' }}">{{ 'onboarding' if d.status=='onboarding' else 'active client' }}</span></td>
     <td style="min-width:140px"><div class="bar"><span style="width: {{ (100 * d.done / d.total)|round|int }}%"></span></div><div class="small muted">{{ d.done }}/{{ d.total }}</div></td>
-    <td class="small">{% for key, label, who in CHECKLIST if key not in cl %}{% if loop.first %}{{ label }} <span class="muted">({{ who }})</span>{% endif %}{% else %}Ready to execute ✅{% endfor %}</td>
+    <td class="small">{% for key, label, who in CHECKLIST if key not in cl %}{% if loop.first %}{{ label }} <span class="muted">({{ 'automatic' if who == 'auto' else 'you' }})</span>{% endif %}{% else %}Onboarded ✅ · client care running{% endfor %}</td>
   </tr>
-  {% else %}<tr><td colspan="6" class="muted">No clients yet. When someone says yes, open their lead and click "Mark as WON".</td></tr>{% endfor %}
+  {% else %}<tr><td colspan="5" class="muted">No clients yet. When someone says yes, open their lead → "They said YES".</td></tr>{% endfor %}
 </table></div>
 {% endblock %}

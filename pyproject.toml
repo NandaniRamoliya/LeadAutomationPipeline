@@ -18,6 +18,8 @@ dependencies = [
   "python-dotenv>=1.0",
   "tzdata>=2024.1",
   "waitress>=3.0",
+  "phonenumbers>=8.13",
+  "ruamel.yaml>=0.18",
 ]
 
 [project.optional-dependencies]

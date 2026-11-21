@@ -11,33 +11,37 @@
   <a class="brand" href="{{ url_for('home') }}">Lead Pipeline</a>
   {% set ep = request.endpoint %}
   <nav>
-    <a href="{{ url_for('home') }}" class="{{ 'on' if ep=='home' }}">Overview</a>
-    <a href="{{ url_for('outbox') }}" class="{{ 'on' if ep=='outbox' }}">Outbox{% if waiting.outbox %}<span class="count">{{ waiting.outbox }}</span>{% endif %}</a>
-    <a href="{{ url_for('replies') }}" class="{{ 'on' if ep=='replies' }}">Replies{% if waiting.replies %}<span class="count">{{ waiting.replies }}</span>{% endif %}</a>
-    <a href="{{ url_for('manual') }}" class="{{ 'on' if ep=='manual' }}">Manual DMs{% if waiting.manual %}<span class="count">{{ waiting.manual }}</span>{% endif %}</a>
-    <a href="{{ url_for('leads') }}" class="{{ 'on' if ep in ('leads','company') }}">Leads</a>
-    <a href="{{ url_for('contacts') }}" class="{{ 'on' if ep in ('contacts','contact') }}">Pipeline</a>
+    <a href="{{ url_for('home') }}" class="{{ 'on' if ep=='home' }}">Home</a>
+    <a href="{{ url_for('todo') }}" class="{{ 'on' if ep=='todo' }}">To-do{% if todo_count %}<span class="count">{{ todo_count }}</span>{% endif %}</a>
+    <a href="{{ url_for('leads') }}" class="{{ 'on' if ep in ('leads','lead','company','researching') }}">Leads</a>
     <a href="{{ url_for('clients') }}" class="{{ 'on' if ep=='clients' }}">Clients</a>
-    <a href="{{ url_for('analytics') }}" class="{{ 'on' if ep=='analytics' }}">Analytics</a>
     <a href="{{ url_for('settings') }}" class="{{ 'on' if ep=='settings' }}">Settings</a>
   </nav>
   <div class="status">
-    <span title="last heartbeat {{ status.heartbeat or 'never' }}"><span class="dot {{ 'live' if status.alive }}"></span>{{ 'Engine running' if status.alive else 'Engine stopped' }}</span>
-    {% if status.mode != 'smtp' %}<span class="pill warn">DRY RUN</span>{% else %}<span class="pill ok">LIVE</span>{% endif %}
-    {% if status.paused %}<span class="pill bad">SENDING PAUSED</span>{% endif %}
-    {% if status.autopilot_cold %}<span class="pill acc">AUTOPILOT</span>{% endif %}
-    <form class="inline" method="post" action="{{ url_for('toggle', key='sending_paused') }}">
-      <input type="hidden" name="_csrf" value="{{ csrf }}">
-      <button class="small {{ '' if status.paused else 'danger' }}">{{ 'Resume sending' if status.paused else 'Pause all sending' }}</button>
-    </form>
+    {% if status.engine_paused %}<span class="pill bad">PAUSED</span>
+    {% elif status.alive %}<span><span class="dot live"></span>Running</span>
+    {% else %}<span><span class="dot"></span>Not running</span>{% endif %}
+    {% if status.mode != 'smtp' %}<span class="pill warn" title="Emails are saved as files, not sent">TEST MODE</span>{% else %}<span class="pill ok">LIVE</span>{% endif %}
   </div>
 </div></header>
 <main>
   {% with msgs = get_flashed_messages(with_categories=true) %}
     {% for cat, m in msgs %}<div class="flash {{ cat }}">{{ m }}</div>{% endfor %}
   {% endwith %}
-  {% if not status.alive %}<div class="banner">The engine is not running, so nothing happens automatically. Start it with <code>leadpipe start</code> (or <code>leadpipe run</code>).</div>{% endif %}
+  {% if setup_needed and request.endpoint != 'settings' %}
+    <div class="banner">👋 First, tell the system about your business (2 minutes): <a href="{{ url_for('settings') }}"><b>Finish setup →</b></a></div>
+  {% endif %}
   {% block content %}{% endblock %}
 </main>
+<script>
+// Copy a message, then open the app (Instagram / LinkedIn / X don't accept pre-filled text)
+document.addEventListener('click', function (e) {
+  var b = e.target.closest('[data-copy]');
+  if (!b) return;
+  var el = document.getElementById(b.getAttribute('data-copy'));
+  if (el && navigator.clipboard) { navigator.clipboard.writeText(el.value || el.textContent); }
+  if (b.tagName === 'BUTTON') { b.textContent = 'Copied ✓'; e.preventDefault(); }
+});
+</script>
 </body>
 </html>

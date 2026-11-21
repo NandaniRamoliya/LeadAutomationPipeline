@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}What's working · Lead Pipeline{% endblock %}
+{% block content %}
+<div class="row" style="justify-content:space-between"><h1>What's working (last {{ days }} days)</h1>
+<div class="tabs">{% for d in [7, 30, 90, 365] %}<a class="{{ 'on' if d == days }}" href="{{ url_for('insights', days=d) }}">{{ d }} days</a>{% endfor %}</div></div>
+<div class="grid">
+  <div class="card kpi"><div class="n">{{ o.contacted }}</div><div class="muted small">contacted by email</div></div>
+  <div class="card kpi"><div class="n">{{ o.reply_rate }}%</div><div class="muted small">replied</div></div>
+  <div class="card kpi"><div class="n">{{ o.positive_rate }}%</div><div class="muted small">interested</div></div>
+  <div class="card kpi"><div class="n">{{ o.bounce_rate }}%</div><div class="muted small">bounced (keep under 3%)</div></div>
+  <div class="card kpi"><div class="n">{{ o.meetings }}</div><div class="muted small">calls booked</div></div>
+  <div class="card kpi"><div class="n">{{ o.won }}</div><div class="muted small">clients won</div></div>
+</div>
+<p class="small muted">Good targeted outreach: 5–15% replies, 2–5% interested, bounces under 3%.</p>
+<div class="grid2">
+<div><h2>Messages sent by channel</h2>
+<table><tr><th>Channel</th><th>Sent</th></tr>{% for r in ch_rows %}<tr><td>{{ ICONS.get(r.channel, '') }} {{ LABELS.get(r.channel, r.channel) }}</td><td>{{ r.n }}</td></tr>{% else %}<tr><td colspan="2" class="muted">Nothing sent yet.</td></tr>{% endfor %}</table></div>
+<div><h2>Which follow-up gets the reply?</h2>
+<table><tr><th>Track</th><th>Step</th><th>Sent</th><th>Reply rate</th></tr>
+  {% for s in steps %}<tr><td>{{ s.sequence }}</td><td>{{ s.step + 1 }} · {{ (s.purpose or '')|replace('_',' ') }}</td><td>{{ s.sent }}</td><td>{{ s.reply_rate }}%</td></tr>
+  {% else %}<tr><td colspan="4" class="muted">No emails sent yet.</td></tr>{% endfor %}</table></div>
+<div><h2>Which problems get interest?</h2>
+<table><tr><th>Problem</th><th>Contacted</th><th>Interested</th></tr>
+  {% for s in signals %}<tr><td>{{ SIGNALS[s.signal].label if s.signal in SIGNALS else s.signal }}</td><td>{{ s.contacted }}</td><td>{{ s.positive_rate }}%</td></tr>
+  {% else %}<tr><td colspan="3" class="muted">Not enough data yet.</td></tr>{% endfor %}</table>
+<p class="small muted">Give the ones that work more weight in Settings → Setup (or config.yaml → signals).</p></div>
+<div><h2>Which business types respond?</h2>
+<table><tr><th>Type</th><th>Contacted</th><th>Interested</th></tr>
+  {% for c in categories %}<tr><td>{{ (c.category or '')|replace('_',' ') }}</td><td>{{ c.contacted }}</td><td>{{ c.positive_rate }}%</td></tr>
+  {% else %}<tr><td colspan="3" class="muted">Not enough data yet.</td></tr>{% endfor %}</table></div>
+</div>
+{% endblock %}

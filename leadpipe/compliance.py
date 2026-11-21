@@ -41,9 +41,9 @@ WORD_LIMITS = {
     "proposal_followup": 90, "objection_preempt": 120, "decision_nudge": 80, "close_file": 70,
     "nurture_value": 100, "nurture_idea": 100, "nurture_final": 70,
     "care_checkin": 90, "care_feedback": 100, "care_referral": 100, "care_next": 110,
-    "referral_intro": 100,
+    "referral_intro": 100, "dm_intro": 60, "dm_touch": 45, "dm_followup": 45, "dm_final": 40,
 }
-FIRST_TOUCH = {"intro", "referral_intro"}
+FIRST_TOUCH = {"intro", "referral_intro", "dm_intro"}
 
 
 def word_count(text: str) -> int:
@@ -51,9 +51,15 @@ def word_count(text: str) -> int:
 
 
 def check_message(cfg: Config, subject: str, body: str, purpose: str | None, company_name: str = "",
-                  kind: str = "sequence") -> list[dict]:
+                  kind: str = "sequence", channel: str = "email") -> list[dict]:
     """Return a list of issues: {"level": "block"|"warn", "rule": str, "detail": str}."""
     issues: list[dict] = []
+    if channel == "call":  # a call script: only make sure nothing is left unfilled
+        tags = MERGE_TAG_RE.findall(body or "")
+        return [{"level": "block", "rule": "merge_tags", "detail": f"Unfilled placeholders: {', '.join(tags[:5])}"}] if tags else []
+    if channel != "email":
+        subject = ""
+        kind = "dm" if kind == "sequence" else kind
     text = f"{subject}\n{body}"
     low = text.lower()
 
@@ -62,7 +68,7 @@ def check_message(cfg: Config, subject: str, body: str, purpose: str | None, com
 
     if not (body or "").strip():
         add("block", "empty_body", "The email body is empty.")
-    if kind != "reply" and not (subject or "").strip():
+    if kind not in ("reply", "dm") and not (subject or "").strip():
         add("block", "empty_subject", "The subject line is empty.")
 
     tags = MERGE_TAG_RE.findall(text)
@@ -84,6 +90,8 @@ def check_message(cfg: Config, subject: str, body: str, purpose: str | None, com
         int(cfg.get("compliance.max_links_followup", 1))
     if kind in ("reply", "onboarding"):
         max_links = 4
+    elif kind == "dm":
+        max_links = 0 if purpose in FIRST_TOUCH else 1
     if links > max_links:
         add("block", "too_many_links", f"{links} links (max {max_links} for this email). Links hurt deliverability.")
 

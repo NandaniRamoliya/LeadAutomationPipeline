@@ -1,25 +1,25 @@
 # User Guide: LeadAutomationPipeline
 
-This guide explains **what the system does, how it works, how to set it up, and how to use it every day**.
-No programming knowledge is needed beyond copying commands.
+This guide explains in simple words **what the system does, how it works, how to set it up, and how to use it
+every day**. No programming knowledge is needed beyond copying a few commands.
 
 **Contents**
 
-1. [What it does, in plain words](#1-what-it-does-in-plain-words)
-2. [What you need before you start](#2-what-you-need-before-you-start)
-3. [Install](#3-install)
-4. [Try the demo (5 minutes)](#4-try-the-demo-5-minutes)
+1. [What it does](#1-what-it-does)
+2. [The 5 pages of the dashboard](#2-the-5-pages-of-the-dashboard)
+3. [Install (10 minutes)](#3-install-10-minutes)
+4. [Try the demo](#4-try-the-demo)
 5. [Set it up for your business](#5-set-it-up-for-your-business)
-6. [Your first week](#6-your-first-week)
-7. [Your daily routine (15 minutes)](#7-your-daily-routine-15-minutes)
-8. [The dashboard, page by page](#8-the-dashboard-page-by-page)
-9. [How leads are found and qualified](#9-how-leads-are-found-and-qualified)
-10. [How emails are written and checked](#10-how-emails-are-written-and-checked)
+6. [Make it run 24/7 by itself](#6-make-it-run-247-by-itself)
+7. [Your daily routine (15–30 minutes)](#7-your-daily-routine-1530-minutes)
+8. [Where leads come from (start local, then the world)](#8-where-leads-come-from-start-local-then-the-world)
+9. [How each business is researched](#9-how-each-business-is-researched)
+10. [Channels: email, WhatsApp, Instagram, LinkedIn, X, Facebook, calls](#10-channels-email-whatsapp-instagram-linkedin-x-facebook-calls)
 11. [The follow-up logic (every path)](#11-the-follow-up-logic-every-path)
 12. [When a lead says YES: onboarding](#12-when-a-lead-says-yes-onboarding)
-13. [Going live: real emails](#13-going-live-real-emails)
-14. [Running 24/7](#14-running-247)
-15. [Unsubscribe links and calendar bookings (public URL)](#15-unsubscribe-links-and-calendar-bookings-public-url)
+13. [Going live with real emails](#13-going-live-with-real-emails)
+14. [Sending more: extra mailboxes](#14-sending-more-extra-mailboxes)
+15. [Importing your own lists (Google Sheets / CSV)](#15-importing-your-own-lists-google-sheets--csv)
 16. [Alerts on your phone](#16-alerts-on-your-phone)
 17. [Command reference](#17-command-reference)
 18. [Troubleshooting](#18-troubleshooting)
@@ -27,75 +27,49 @@ No programming knowledge is needed beyond copying commands.
 
 ---
 
-## 1. What it does, in plain words
+## 1. What it does
 
-Think of it as a small sales team that never sleeps:
+It is a small sales team that never sleeps:
 
-| "Employee" | Job | Runs |
+| Step | What happens | Who |
 |---|---|---|
-| **Lead Hunter** | Finds businesses in your city and niche (OpenStreetMap is free, or Google Places, or your CSV) | every few hours, when the queue is low |
-| **Auditor** | Opens each website and notes real, checkable problems: no online booking, not mobile-friendly, slow, "Not secure", old copyright year, no website at all... Finds the owner's name and email | every 20 min |
-| **Verifier** | Checks every email address can receive mail. Bad ones are never used | with the Auditor |
-| **Writer** | Writes one short, personal email per person and per follow-up, based on *their* problem | every 10 min |
-| **Sender** | Sends approved emails one at a time, inside the recipient's office hours, under your daily limit | every minute |
-| **Inbox reader** | Reads replies, understands them (interested? price question? not now? unsubscribe?) | every 5 min |
-| **Closer** | Drafts the right answer and moves the lead to the right follow-up track | on every reply |
-| **Onboarder** | After "yes": contract, invoice, welcome document, kickoff, access list, portal, with reminders | every minute |
-| **Analyst** | Shows which emails, problems and business types actually get replies | always |
+| **Find** | Searches one area for the business types you chose (e.g. dentists, cafés, gyms in Surat). When an area is finished, it moves to the next city, then the next country. | automatic |
+| **Research** | Opens each business's website and notes real problems you can fix (no online booking, not mobile-friendly, slow, "Not secure", no website at all, low Google rating…). Finds the owner's name, email, phone, WhatsApp, Instagram, LinkedIn. | automatic |
+| **Score** | Keeps only businesses with problems your service fixes. High-value leads you import go first. | automatic |
+| **Write** | Writes a short, personal message for each person, built on *their* problem. With Claude (optional) the writing is even more natural. | automatic |
+| **Email** | Sends emails one at a time, in *their* office hours, within safe daily limits. | automatic (after your OK, or autopilot) |
+| **WhatsApp / Instagram / LinkedIn / X / Facebook / calls** | Writes the message or call script and puts it on your **To-do** with a one-click button. | **you** press send / dial (see §10 why) |
+| **Follow up** | Follows up on a schedule. Every follow-up adds something new. | automatic |
+| **Read replies** | Reads every email reply, understands it (interested? price? not now? stop?), drafts the answer, moves the lead to the right track. | automatic |
+| **Close** | No reply after the whole track → closed politely. "Not now" → checks back in 1–3 months. "Stop" → never contacted again. | automatic |
+| **Onboard** | When someone says yes: contract → payment → welcome → kickoff → access → portal, then client care and referrals. | automatic messages, you tick what happened |
 
-**What you do:** approve emails (or switch on autopilot later), take the calls, send proposals, do the work,
-and tick onboarding steps only you can confirm ("contract signed", "payment received").
-
-**The golden rule** (from every playbook): *one real, personal message beats 100 templates*. The system is
-built to send fewer, better emails, not more.
+**What you do:** spend 15–30 minutes a day on the **To-do** page (answer replies, send the WhatsApp/DM tasks,
+make the calls), take the meetings, and do the work.
 
 ---
 
-## 2. What you need before you start
+## 2. The 5 pages of the dashboard
 
-| Item | Why | Cost |
-|---|---|---|
-| **Python 3.10+** | Runs the program | free |
-| **A separate sending domain** (e.g. `getpixelstudio.com` if your site is `pixelstudio.com`) | Protects your main domain's reputation if anything goes wrong | ~₹800–1,000 / $10 a year |
-| **A mailbox on that domain** (Google Workspace best, Microsoft 365 / Zoho fine) | Sends and receives the emails | ~$7/month |
-| **SPF, DKIM, DMARC** DNS records on the sending domain | Without them Gmail puts you in spam | free |
-| **2–4 weeks of mailbox warm-up** | A brand-new mailbox that suddenly sends cold email = spam | free (normal use) or a warm-up service |
-| **A calendar booking link** (Cal.com free, Calendly, Google Calendar booking page) | Every reply pushes toward a 15-minute call | free |
-| **A real postal address** | Legally required in commercial email in the US (CAN-SPAM) and good practice everywhere | — |
-| *Optional:* Claude API key or Claude Pro/Max plan | AI-written emails and smarter reply reading | pay as you go / your plan |
+Open **http://localhost:8787** (or run `leadpipe open`).
 
-### Setting up the sending domain (Google Workspace example)
+| Page | What it's for |
+|---|---|
+| **Home** | Is it running? What happened today? Which city is being searched now, and which come next? A big **Pause everything** button and a **Run in background always** button. |
+| **To-do** | The *only* page you need every day. Everything that needs you, most important first, each with one button: **Send reply**, **Open WhatsApp (message ready)**, **📞 Call** + script + "what happened", **Approve** emails, client steps. |
+| **Leads** | Every business: why it's a good lead, its status in plain words (Reaching out / Talking / Clients / Later / Closed) and *what happens next* ("Email 3 of 5 · in 2 days"). Click one to see everything about it. |
+| **Clients** | People who said yes, and how far their onboarding is. |
+| **Settings** | **Setup** form (your business, who/where to reach, channels, your mailbox), **Where to reach** (the city list and progress), **Automation & 24/7**, **Import leads**, **Do-not-contact**, and **What's working** (statistics). |
 
-1. Buy the domain (Namecheap, GoDaddy, Cloudflare...).
-2. Create Google Workspace on it and make one mailbox, e.g. `asha@getpixelstudio.com`.
-3. Add these DNS records at your domain provider:
-   - **SPF** (TXT on `@`): `v=spf1 include:_spf.google.com ~all`
-   - **DKIM**: Google Admin → Apps → Gmail → Authenticate email → *Generate new record* → add the TXT it shows (name `google._domainkey`) → click *Start authentication*.
-   - **DMARC** (TXT on `_dmarc`): `v=DMARC1; p=none; rua=mailto:you@yourmaindomain.com`
-4. Make the "from" name a real person, add a profile photo, and **forward** the sending domain's website to your main site.
-5. Create an **App Password** (Google Account → Security → 2-Step Verification → App passwords). You'll put it in `.env`.
-6. **Warm up**: for 2–4 weeks, use the mailbox normally (send real emails to people you know, sign up to newsletters, reply).
-   The pipeline also ramps up slowly by itself (5 emails on day 1, +2 per day).
-
-`leadpipe doctor` checks SPF, DKIM and DMARC for you.
+Top right: **Running** (green) / **Not running** / **PAUSED**, and **TEST MODE** (nothing really sent) or **LIVE**.
 
 ---
 
-## 3. Install
+## 3. Install (10 minutes)
 
-**Mac / Linux**
+You need **Python 3.10 or newer** ([python.org](https://www.python.org/downloads/); on Windows tick *"Add python.exe to PATH"*).
 
-```bash
-git clone https://github.com/NandaniRamoliya/LeadAutomationPipeline.git
-cd LeadAutomationPipeline
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -e .
-```
-
-(On a Mac, if `python3 --version` says 3.9, install a newer one: `brew install python@3.13` and use `python3.13 -m venv .venv`.)
-
-**Windows** (PowerShell)
+**Windows** (PowerShell):
 
 ```powershell
 git clone https://github.com/NandaniRamoliya/LeadAutomationPipeline.git
@@ -105,110 +79,262 @@ py -3 -m venv .venv
 pip install -e .
 ```
 
-Check it works: `leadpipe --help`.
+**Mac / Linux**:
 
-> Every time you open a new terminal, first `cd LeadAutomationPipeline` and activate the venv
-> (`source .venv/bin/activate` or `.venv\Scripts\activate`). If you see `command not found: leadpipe`, you forgot this.
+```bash
+git clone https://github.com/NandaniRamoliya/LeadAutomationPipeline.git
+cd LeadAutomationPipeline
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e .
+```
+
+Check: `leadpipe --help`. Every time you open a new terminal, first `cd LeadAutomationPipeline` and activate
+(`.venv\Scripts\activate` or `source .venv/bin/activate`).
 
 ---
 
-## 4. Try the demo (5 minutes)
+## 4. Try the demo
 
 ```bash
 leadpipe demo
 leadpipe -c demo/config.yaml dashboard
 ```
 
-Open **http://localhost:8787**. You'll see 7 made-up businesses with drafts, replies of every kind
-(price question, "not now", unsubscribe, booked call, "let's go ahead") and one client in onboarding.
-Click around: approve an email, open a lead, tick an onboarding step. Nothing is ever sent from the demo.
+Open http://localhost:8787. Made-up businesses with every situation: replies of each kind, a WhatsApp task, a call with
+script, a client in onboarding, the city rollout. Click everything. Nothing is ever sent from the demo.
 
 ---
 
 ## 5. Set it up for your business
 
 ```bash
-leadpipe init
+leadpipe start
 ```
 
-It asks a few questions (your name, service, offer, price range, booking link, address, the area and business types
-you want) and creates two files:
+Open http://localhost:8787 → **Settings → Setup** and fill in the form (2 minutes). It saves everything for you
+(to `config.yaml` and `.env`) and the running system uses it within a minute.
 
-- **`config.yaml`**: all settings. Every line has a comment explaining it.
-- **`.env`**: passwords and keys. Never share or commit this file.
-
-### 5.1 `config.yaml`: the important parts
-
-**`profile`**: who you are. This is what every email is built from. Be specific and honest.
-
-| Setting | Example | Tip |
+| Section | Fill in | Tips |
 |---|---|---|
-| `service` | `websites with online booking` | the words a shop owner would use, not "digital solutions" |
-| `starter_offer` | `a booking-ready one-page website in 5 days` | small, quick, low risk: easy to say yes to |
-| `price_range` | `₹8,000 to ₹15,000` | only used when someone asks "how much?" |
-| `proof` | `built booking websites for 12 local clinics` | a real result, written as "built…/helped…". Leave `[]` if you have none yet |
-| `proof_by_category` | `{dentist: "built sites for 5 dental clinics"}` | relevant proof beats impressive proof |
-| `quick_win` | `a free 2-minute video audit of your website` | the "extra effort" you offer to start a conversation |
-| `booking_link` | `https://cal.com/you/15min` | every positive reply pushes here |
-| `physical_address` | your real address | added to every outreach email (legal requirement) |
+| **1. Your business** | name, what you sell, small first offer, price range, free quick win, booking link, postal address, proof | Write what you sell the way a shop owner would say it. Proof = a real result ("built booking sites for 12 clinics"). Price is only used when someone asks. |
+| **2. Who to reach** | business types, start city, your timezone, next areas, countries | Start where you are. It moves on automatically. |
+| **3. Channels** | tick the channels you'll use, tasks per day | Fewer, better calls/DMs beat many. |
+| **4. Your email** | sending mailbox and password | See §13 before switching to LIVE. |
+| **5. Extras** | AI, Serper/Google keys, alerts | All optional. |
 
-**`targets`**: where to look. You can have several:
+Then check everything: `leadpipe doctor` (fix every FAIL before going live).
 
-```yaml
-targets:
-  - name: "pune-dentists"
-    area: "Pune, India"
-    categories: ["dentist", "clinic"]
-    timezone: "Asia/Kolkata"
-    country: "IN"
-    limit: 150
-  - name: "london-cafes"
-    area: "London, United Kingdom"
-    categories: ["cafe", "restaurant"]
-    timezone: "Europe/London"
-    country: "GB"
-    limit: 100
+> Prefer the terminal? `leadpipe init` asks the same questions, and every setting is explained inside `config.yaml`.
+
+---
+
+## 6. Make it run 24/7 by itself
+
+Run **once** (or click **Run in background always** on the Home page):
+
+```bash
+leadpipe service install
 ```
 
-`leadpipe categories` lists the business types you can use (dentist, cafe, salon, gym, lawyer, real_estate...).
-Anything else can be given as an OpenStreetMap tag like `"shop=bicycle"`.
+| Your computer | What it does |
+|---|---|
+| **Windows** | Creates a Task Scheduler task "LeadPipeline": starts when you log in, runs hidden (no window), keeps the PC awake while working, runs on battery, and is re-checked every 5 minutes, so if it ever stops it restarts by itself. |
+| **Mac** | A LaunchAgent that starts at login and is kept alive. |
+| **Linux** | A systemd user service with automatic restart (`sudo loginctl enable-linger $USER` keeps it running after logout). |
 
-**`signals`**: what makes a business a good lead **for your service**. Weight 0 = ignore. Higher = more important.
-A web designer cares about `no_website`, `not_mobile_friendly`, `no_online_booking`. An ads freelancer cares about
-`running_ads` and `no_analytics`. An automation freelancer cares about `hiring` and `no_live_chat`.
-Run `leadpipe signals` to see all of them with explanations.
+Check it: `leadpipe service status` · see the log: `leadpipe service logs` · pause: `leadpipe service stop` ·
+resume: `leadpipe service start` · remove: `leadpipe service uninstall`.
 
-**`sending`**: limits. The defaults are safe: max 40/day, warm-up from 5/day, 10 new leads/day, office hours
-9:30–17:30 Mon–Fri in *their* timezone, 3–9 minutes between emails.
+**Important:** a program can't run while the computer is **shut down**. Leave it on (sleep is blocked while it
+works; also set *Power & battery → When plugged in, put my device to sleep → Never*, and on laptops *Lid close → Do nothing*).
+For **true 24/7 even when your laptop is off**, run it on a small cloud server (~$5/month: Hetzner, DigitalOcean, AWS Lightsail):
 
-**`approval`**: `autopilot_cold: false` and `autopilot_replies: false` mean every email waits for you. Keep them off for
-the first 1–2 weeks.
-
-**`sequences`**: the follow-up tracks (see [section 11](#11-the-follow-up-logic-every-path)). You can change the days.
-
-**`onboarding`**: your contract link, payment link, welcome-document link, portal link, and the list of accesses
-you need from new clients.
-
-**`llm`**: AI. `auto` uses the Claude API if `ANTHROPIC_API_KEY` is set, else the `claude` command-line tool if you're
-logged in (uses your Claude Pro/Max plan), else the built-in templates.
-
-### 5.2 `.env`: passwords
-
-```ini
-FROM_EMAIL=asha@getpixelstudio.com
-FROM_NAME=Asha Patel
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_SECURITY=starttls
-SMTP_USER=asha@getpixelstudio.com
-SMTP_PASSWORD=your-16-letter-app-password
-IMAP_HOST=imap.gmail.com
-IMAP_PORT=993
-IMAP_USER=asha@getpixelstudio.com
-IMAP_PASSWORD=your-16-letter-app-password
-ANTHROPIC_API_KEY=            # optional
-DASHBOARD_PASSWORD=           # required if the dashboard is reachable from the internet
+```bash
+sudo apt update && sudo apt install -y python3-venv git
+git clone https://github.com/NandaniRamoliya/LeadAutomationPipeline.git && cd LeadAutomationPipeline
+python3 -m venv .venv && . .venv/bin/activate && pip install -e .
+leadpipe init                    # or copy your config.yaml and .env from your PC
+leadpipe service install && sudo loginctl enable-linger $USER
 ```
+
+Open its dashboard from your PC through an SSH tunnel: `ssh -L 8787:127.0.0.1:8787 you@server`, then http://localhost:8787.
+Or use Docker: `docker compose up -d` (set `DASHBOARD_PASSWORD` in `.env`).
+
+Only **one** copy runs per database. Starting a second one just says "already running".
+
+---
+
+## 7. Your daily routine (15–30 minutes)
+
+Open the dashboard → **To-do**, top to bottom:
+
+1. **Replies & client messages**: read what they wrote, check the drafted answer, **Send reply**. Answer within a few hours.
+2. **Your decision needed**: "let's go ahead" → open the lead → **They said YES** (starts onboarding). Proposal requests, unclear replies.
+3. **Calls to make**: tap **📞 Call**, read the script, then press what happened: *No answer* (tried again tomorrow), *Left voicemail*, *Talked: interested*, *Talked: booked*, *Call back later* (≈ a month), *Not interested*, *Wrong number*.
+4. **Messages to send**: **Open WhatsApp (message ready)**, press send in WhatsApp, come back, **✓ I sent it**. For Instagram/LinkedIn/X/Facebook the message is copied and the profile opens: paste, send, **✓ I sent it**.
+5. **Emails waiting for your OK**: read a few, then **Approve all**. (After 1–2 weeks of good drafts, turn on *Autopilot* in Settings → Automation and this section disappears.)
+6. **Client steps**: "Did they sign / pay / did the kickoff happen?" → **Yes, done**.
+
+If someone answers on WhatsApp, Instagram or by phone, open the lead → **They answered by WhatsApp / phone / DM?** →
+paste what they said → **Log it**. It's understood and handled exactly like an email reply.
+
+Once a week: **Settings → What's working**: which follow-up gets replies, which problems and business types respond.
+
+---
+
+## 8. Where leads come from (start local, then the world)
+
+**Areas, one at a time.** You set a start area ("Surat, India") and business types. The system:
+
+1. Finds the area on the map and splits big cities into **9 pieces** (so it finds *everyone*, not just the first results).
+2. Searches one piece at a time, only when fewer than `min_ready_leads` fresh leads are waiting (so you never pile up thousands of untouched leads).
+3. When all pieces are done, marks the area **finished** and moves on: your *next areas* → the rest of your country
+   (Mumbai, Delhi, Bengaluru, Ahmedabad… 45 Indian cities) → the next countries (UAE, UK, USA, Australia, Canada, Singapore…), city by city.
+
+See and steer it in **Settings → Where to reach**: *Do this area next*, *Skip*, *Search again*. Each area gets its own
+timezone, so emails always arrive in **their** office hours. Countries in *Never search in* are skipped.
+
+**Sources:**
+
+| Source | Cost | Good for |
+|---|---|---|
+| OpenStreetMap (default) | free | clinics, cafés, restaurants, gyms, salons, shops. Thin for some trades. |
+| Serper (Google Maps results) | 2,500 free searches, then ~$1/1,000 | everything on Google Maps, with ratings & reviews. Add `SERPER_API_KEY` in Setup. |
+| Google Places | paid by Google | best coverage. Add `GOOGLE_PLACES_API_KEY`. |
+| Your own lists | free | Google Sheets / CSV (your Maps scrape, high-value clients, Apollo, Sales Navigator). See §15. |
+
+---
+
+## 9. How each business is researched
+
+The Auditor reads the homepage plus up to 5 useful pages (contact, team, about, careers, blog). No AI cost. It records
+**problems with evidence** (shown on the lead page as "Why they're a good lead"):
+
+| Problem | Example evidence |
+|---|---|
+| No website / Instagram only / site broken | "social media page only", "HTTP 500" |
+| No online booking | no booking button or booking tool |
+| Not mobile-friendly, slow, "Not secure" | no mobile viewport, 6.2 s, plain http |
+| Outdated site, abandoned blog | "© 2017", last post 2021 |
+| DIY builder (Wix, GoDaddy…), built by an agency | "Website by XYZ" in the footer |
+| Running ads | Google Ads / Meta Pixel found |
+| Hiring | open roles from their Greenhouse / Lever / Ashby / Workable board |
+| Weak SEO, no structured data, no analytics, no chat button | missing title/description… |
+| Low Google rating, few reviews | 3.6★, 9 reviews (from Maps imports / Serper / Google) |
+| Startup backed / recently funded | "backed by Y Combinator", "we raised a $2M seed" |
+
+**People and contacts:** owner/founder/director/"Dr." names; emails from the site (including `info [at] site [dot] com`
+and hidden ones); the company's **email pattern** (if `nora.vale@` belongs to Nora Vale, the owner Ravi Mehta is
+`ravi.mehta@`); phone numbers; WhatsApp, Instagram, LinkedIn, X and Facebook links. Every email is checked (domain can
+receive mail, not a no-reply address). Max 2 people per company.
+
+**Score:** sum of the problems' weights (you choose them: Settings or `config.yaml → signals`), +10 if a named
+decision-maker, +30 for high-value imports. Below `min_score` → set aside as "not a fit" (Leads → *Being researched / not a fit*).
+
+---
+
+## 10. Channels: email, WhatsApp, Instagram, LinkedIn, X, Facebook, calls
+
+| Channel | Automatic? | How it works |
+|---|---|---|
+| ✉️ **Email** | **Yes, fully** | Sent from your mailbox, in their office hours, with warm-up and daily limits. Replies are read automatically. |
+| 💬 **WhatsApp** | One click | The message is written; **Open WhatsApp** opens the chat with the text already typed; you press send. Used when the business has a mobile number or WhatsApp link. |
+| 📸 Instagram · 💼 LinkedIn · 𝕏 X · 📘 Facebook | One click | The message is copied and their profile/DM opens; you paste and send. |
+| 📞 **Calls** | One tap | Tap to dial (on your phone, open the dashboard on the same Wi-Fi, see §19), read the personalised script, press what happened. "No answer" retries tomorrow (2 attempts). |
+
+**Why not fully automatic?** Instagram, LinkedIn, X, Facebook and WhatsApp ban accounts that send automated messages
+(and WhatsApp's business API forbids cold messages). Automated/robo calls are illegal in many countries (US TCPA, India's
+TRAI rules, UK PECR). One click per message keeps your accounts and phone number safe, and personal messages get far more
+replies anyway.
+
+**Which channel when:** leads **with email** get the email track, plus (only if they're good leads, score ≥
+`min_score_for_tasks`) one call and one DM in between. Leads **without email** get a DM/call track
+(WhatsApp first, then Instagram, LinkedIn, Facebook, X). Calls/DMs are capped per day (`tasks_per_day`), best leads first.
+
+---
+
+## 11. The follow-up logic (every path)
+
+Every lead is in one **stage**. Each stage has its own **track**. When they reply, the old track stops and the right
+new one starts. That's how "converted → different follow-up, not converted → different follow-up, close after a certain
+time" works.
+
+### 11.1 No reply yet
+
+**Has email (`cold`):**
+
+| Day | Step |
+|---|---|
+| 0 | ✉️ intro: their problem, what it costs, free quick win, one soft question |
+| 3 | ✉️ short bump with one new detail (same thread) |
+| 5 | 📞 call (good leads only, if there's a phone) |
+| 7 | ✉️ new insight: what you'd change first |
+| 10 | 💬 short DM on WhatsApp/Instagram/LinkedIn (good leads only) |
+| 12 | ✉️ "reply yes and I'll make the free audit/mock-up for you" |
+| 18 | ✉️ polite close, door open |
+| 25 | still silent → **Closed** |
+
+**No email (`cold_social`):** day 0 DM intro → day 2 call → day 6 DM follow-up → day 13 last DM → day 20 closed.
+
+Days count from the previous message, so delays (limits, weekends) never squash the spacing. Steps that can't happen
+(no phone, no social profile) are skipped automatically.
+
+### 11.2 What each reply does
+
+| They say (examples) | Understood as | Next |
+|---|---|---|
+| "Interested", "yes, send it", "tell me more" | interested | **Talking**: answer drafted (call link); booking nudge day 2, call day 4, proof day 6, close day 10 → Later |
+| "How much?" / "Portfolio?" / "How long?" | question | **Talking**: answer drafted (price *range* only when asked) |
+| "I booked Thursday" / calendar booking | call booked | **Call booked** → the day after: proposal track (day 2 email, day 4 call, day 6 FAQ, day 10 smaller first step, day 21 close → Later) |
+| "Send a quote/proposal" | proposal request | **Deciding** (you write the proposal; template in docs/templates) |
+| "Let's go ahead", "send the agreement" | ready to buy | **Your decision needed** → click **They said YES** → onboarding |
+| "Not now", "next quarter", "in 2 months" | not now | **Later**: check back at the time they said (default 60 days), then 30/60/90-day check-ins → Closed |
+| "We already have someone" | already have | **Later** (first check-in after 90 days) |
+| "Talk to our manager ravi@…" | referral | Ravi is added and contacted ("X suggested I reach out") |
+| "Not interested", "no thanks" | no | **Closed** + one polite "understood" (needs your OK) + never contacted again |
+| "Unsubscribe", "stop", "remove me" | opt-out | **Opted out**, never contacted again (email, phone and profiles) |
+| Out-of-office | auto-reply | nothing changes; next follow-up pushed 4 days |
+| Delivery failure | bounce | **Email bounced**, address never used again |
+
+When **anyone** at a company replies, outreach to their colleagues stops.
+
+### 11.3 Moving leads yourself
+
+Open a lead → **More actions → Move** (or `leadpipe stage <id> <stage>`). The new stage's track starts right away.
+
+---
+
+## 12. When a lead says YES: onboarding
+
+Open the lead → **More actions → They said YES** (or `leadpipe won <id> --value 15000`).
+
+| Step | Written for you automatically | You tick (To-do → Client steps) | Reminder if stuck |
+|---|---|---|---|
+| 01 Contract | "Next steps: agreement" with your e-sign link | **Contract signed** | every 2 days, 3× |
+| 02 Payment | invoice / payment link | **Payment received** | every 2 days, 3× |
+| 03 Welcome | what happens next, what you need, timeline + kickoff link | | |
+| 04 Kickoff | | **Kickoff call done** | kickoff link reminder |
+| 05 Access | the access list (invite me as a user, never send passwords on chat) | **All access received** | every 2 days, 3× |
+| 06 Portal | "everything in one place: <link>" | **Client portal live** | |
+| Then | **client care**: check-in day 14, testimonial day 30, referral ask day 60, next-project idea day 120 | | |
+
+No payment, no onboarding: the welcome message only comes after *Payment received*. Templates for the contract, proposal,
+welcome document, kickoff agenda, access checklist and portal are in [docs/templates/](templates/).
+
+---
+
+## 13. Going live with real emails
+
+1. **Use a separate sending domain** (e.g. `getpixelstudio.com` if your site is `pixelstudio.com`): ~₹800/year + a
+   Google Workspace mailbox (~$7/month). This protects your main domain.
+2. **DNS records** at your domain provider: SPF `v=spf1 include:_spf.google.com ~all` (TXT on `@`); DKIM (Google Admin →
+   Apps → Gmail → Authenticate email → generate, add TXT `google._domainkey`, start authentication); DMARC TXT on `_dmarc`:
+   `v=DMARC1; p=none; rua=mailto:you@yourmaindomain.com`.
+3. **App Password**: Google Account → Security → 2-Step Verification → App passwords. Put it in Setup → 4.
+4. **Warm up** the mailbox 2–4 weeks with normal use. The system also ramps up by itself: 5 emails on day 1, +2 per day, up to your daily limit.
+5. `leadpipe doctor` shows no FAIL (it checks SPF, DKIM, DMARC, SMTP and IMAP login).
+6. Settings → Setup → tick **LIVE** → Save. The top bar shows **LIVE**.
 
 | Provider | SMTP | IMAP |
 |---|---|---|
@@ -216,315 +342,58 @@ DASHBOARD_PASSWORD=           # required if the dashboard is reachable from the 
 | Microsoft 365 | `smtp.office365.com` 587 starttls | `outlook.office365.com` 993 |
 | Zoho Mail | `smtp.zoho.in` (or `.com`) 465 ssl | `imap.zoho.in` 993 |
 
-### 5.3 Check everything
+**Emergency stop:** Home → **Pause everything** (or `leadpipe sending pause`).
 
-```bash
-leadpipe doctor
+**Autopilot** (Settings → Automation): *outreach* emails that pass every check go without your OK; *simple replies*
+(interested / price / timeline / portfolio / booked) go by themselves. Ready-to-buy, proposals, referrals and unclear replies
+**always** wait for you.
+
+---
+
+## 14. Sending more: extra mailboxes
+
+One mailbox should send **30–50 cold emails a day** at most. To reach more people, add mailboxes (ideally on 1–3 extra
+sending domains), not more volume per mailbox. In `config.yaml`:
+
+```yaml
+mailboxes:
+  - {name: "second", email: "asha@getpixelstudio.co", from_name: "Asha Patel",
+     smtp_host: "smtp.gmail.com", smtp_port: 587, smtp_security: starttls,
+     imap_host: "imap.gmail.com", password_env: "MAILBOX2_PASSWORD"}
 ```
 
-Fix every **FAIL** before going live. **WARN** items are worth fixing; **INFO** is just information.
-
-Optional: `leadpipe train https://your-site.com` reads your own website with AI and suggests the `profile` section.
-
----
-
-## 6. Your first week
-
-The system starts in **dry-run** mode: it does everything except actually sending. Use this week to trust it.
-
-| Day | Do | Command / place |
-|---|---|---|
-| **1** | Install, `init`, `doctor`, pick signals | `leadpipe init`, `leadpipe doctor`, `leadpipe signals` |
-| **1** | Find and research leads | `leadpipe discover` then `leadpipe enrich` (or just `leadpipe start`) |
-| **2–3** | **Only look.** Read the leads and drafts. Is the research right? Do the emails sound like you? Edit `profile`, signals, `min_score` until they do | Dashboard → Leads, Outbox; dry-run emails in `data/dry_run/` |
-| **4–7** | Switch to real sending (section 13). Approve **10–20 emails a day by hand**, edit anything that sounds off | Dashboard → Outbox |
-| **Week 2+** | When you trust the drafts, consider autopilot for outreach. You can turn it off in one click | Settings → Autopilot |
+and in `.env`: `MAILBOX2_PASSWORD=the-app-password`. Each mailbox warms up separately and has its own daily limit.
+A lead always hears from the same mailbox, and replies to every mailbox are read.
 
 ---
 
-## 7. Your daily routine (15 minutes)
+## 15. Importing your own lists (Google Sheets / CSV)
 
-1. **Open the dashboard → Overview.** Look at *Waiting on you*.
-2. **Replies first** (red badge on Outbox / Replies). These are people who answered. Read their message (click the company),
-   check the drafted answer, edit if needed, **Approve**. Hot replies also come to your phone if alerts are set up.
-3. **Outbox**: read each outreach email as if *you* were the business owner. Approve, edit, *Rewrite* (new version),
-   *Skip this step*, or *Stop emailing them*. If all look good: **Approve all passing outreach**.
-4. **Manual DMs**: businesses without email. Copy the message, send it on Instagram/WhatsApp/phone, click **I sent it**.
-5. **Calls**: when someone books, prepare (open their lead page: the problems found are your talking points).
-   After the call, move them to *proposal* (or it happens automatically the day after the booking).
-6. **When someone says yes**: open the lead → **Mark as WON** (section 12).
-7. Once a week: **Analytics**. Which step gets replies? Which problems? Which business types? Adjust signals and targets.
-
----
-
-## 8. The dashboard, page by page
-
-Start it with `leadpipe start` (engine + dashboard) or `leadpipe dashboard` (dashboard only). Open http://localhost:8787.
-
-- **Top bar**: engine status (green = running), `DRY RUN`/`LIVE`, `AUTOPILOT`, and the **Pause all sending** button (emergency stop).
-- **Overview**: today's numbers, what's waiting on you, 30-day results, the pipeline by stage, live activity,
-  and *Run now* buttons (find businesses, research, write drafts, check replies).
-- **Outbox**: every email waiting for approval, replies first. Edit subject/body in place. Problems found by the checks
-  are listed under each email (⛔ blocks sending, ⚠️ is advice). Below: approved emails waiting for their send window
-  (you can *Un-approve*).
-- **Replies**: every reply, what it means (*Asked about price*, *Not now*, *Unsubscribe*...), and the lead's new stage.
-- **Manual DMs**: messages for leads without email. Send them yourself, click *I sent it*.
-- **Leads**: every company found, its score, the problems found, status (qualified / disqualified and why).
-- **Pipeline**: every contact by stage, which follow-up track it's on, when the next action happens.
-- **Lead page** (click any company): research, full conversation, history, and actions:
-  - *Move this lead* to any stage (this starts that stage's follow-up track)
-  - **Mark as WON** → starts onboarding
-  - *Log their reply* (for phone / WhatsApp / DM answers): it's understood and handled like an email reply
-  - *Write your own email* (goes to the Outbox)
-  - *Do not contact (ever)*
-  - Onboarding checklist (for clients)
-- **Clients**: every won deal with onboarding progress and next step.
-- **Analytics**: reply rate per follow-up step, per problem (signal), per business type, bounce rate.
-- **Settings**: autopilot switches, your profile and targets, do-not-contact list.
-
----
-
-## 9. How leads are found and qualified
-
-**Finding** (`discovery`): for each target, OpenStreetMap is searched for the business types in the area (free, no
-account). Coverage is good for clinics, cafés, restaurants, gyms, salons and shops; weaker for some trades. If it's thin
-for your niche:
-- add `google_places` to `discovery.providers` and put `GOOGLE_PLACES_API_KEY` in `.env` (Google bills per search), or
-- **import a CSV** from Apollo, LinkedIn Sales Navigator, Clay, Hunter or a Google Sheet:
-  ```bash
-  leadpipe import leads.csv --target pune-dentists
-  ```
-  Recognised columns (names are matched loosely): `company`, `website`, `name` (or `first name` + `last name`),
-  `title`/`role`, `email`, `phone`, `city`, `category`, `country`, `instagram`, `notes`.
-
-New searches only run when fewer than `discovery.min_ready_leads` fresh leads are waiting, so you don't pile up
-thousands of untouched leads.
-
-**Researching** (the Auditor, no AI cost): opens the homepage plus up to 4 useful pages (contact, about, team, careers)
-and records **signals with evidence** (e.g. *"Outdated website: © 2017"*). It also finds email addresses (including
-`info [at] site [dot] com` and Cloudflare-protected ones) and decision-makers (Founder, Owner, Director, Dr. ...).
-
-**Verifying**: syntax → disposable/placeholder domains → DNS mail server (MX) → role inbox check. Statuses:
-`valid` (sent), `risky` = info@/contact@ (sent by default, fine for small businesses), `guess` (not sent unless
-`allow_guessed_emails: true`), `invalid` (never). Optional: `HUNTER_API_KEY` for deeper checks.
-
-**Scoring**: sum of the weights of the signals found, +10 if a named decision-maker was found, +5 for a personal
-verified address. Leads below `enrichment.min_score` are *disqualified* (with the reason shown). Max 2 contacts per company.
-
-**Enrolling**: every 10 minutes, the best-scoring qualified leads enter the **cold** track, up to
-`sending.new_leads_per_day` per day.
-
----
-
-## 10. How emails are written and checked
-
-Each email follows the formula from the playbooks:
-
-> **Their name → one specific observation about their business → what it costs them (in plain words) →
-> one line of relevant proof → one quick win → one soft yes/no question.** Under ~80 words. No pitch, no price, no links in
-> the first email.
-
-Example (template, no AI):
-
-> **Subject:** Quick question about Smile Dental Care
->
-> Hi Dr Sharma,
->
-> I couldn't find a way to book online on smiledental.in. It looks like it's phone or WhatsApp only. People who look you up
-> late at night usually book wherever it takes one tap.
->
-> I've built booking websites for 12 local clinics, so I see this a lot. I help businesses like yours fix exactly this,
-> usually with a 'Book now' button connected to your calendar.
->
-> Would it be useful if I sent you a free 2-minute video audit of your website?
->
-> Asha Patel · Pixel Studio
-> 12 MG Road, Pune 411001, India
-> P.S. If this isn't relevant, just reply "no thanks" and I won't email again.
-
-**With AI** (Claude): the same research and rules are given to Claude, which writes a more natural, specific email and
-sees the conversation so far (so follow-ups never repeat themselves). If the AI draft fails a check, it gets one retry
-with the reasons; if it fails again, the template is used. The AI is told to **never invent** facts, numbers or compliments.
-
-**Checks on every email** (⛔ = blocked until you fix it):
-
-| Check | Level |
-|---|---|
-| Unfilled placeholders like `[Name]`, `{{first_name}}` | ⛔ |
-| Spam / AI-sounding phrases ("Dear Sir/Madam", "I hope this finds you well", "just checking in", "synergy", "game-changer"...) | ⛔ |
-| Price in a first email | ⛔ |
-| Too many links (0 in a first email, 1 in follow-ups) | ⛔ |
-| First email pretending to be a reply (`Re:`/`Fwd:`) | ⛔ |
-| Far too long | ⛔ (slightly long = ⚠️) |
-| Company name missing, no question at the end, long subject, CAPS, "!!!" | ⚠️ |
-| At send time: do-not-contact list, undeliverable address, lead already moved on, daily cap, office hours | automatic |
-
-Signature, postal address and opt-out line are **added at send time**. Never type them into drafts.
-
----
-
-## 11. The follow-up logic (every path)
-
-Every contact is in one **stage**. Each stage has its own **track** of follow-ups. When a reply arrives, the old track
-stops and the new stage's track starts. That's how "if converted → different follow-up, if not → different
-follow-up, close after a certain time" works.
-
-### 11.1 No reply yet: the **cold** track
-
-| Day | Email | Idea |
-|---|---|---|
-| 0 | **intro** | observation + cost + quick-win offer + soft question |
-| 3 | **bump** (same thread) | 1–2 lines, one new small detail |
-| 7 | **insight** | what you'd change first and why |
-| 12 | **value** | "reply yes and I'll make the free audit/mock-up for you" |
-| 18 | **breakup** | polite close, door left open |
-| 25 | *(no email)* | still silent → stage **lost** (`no response`) |
-
-Days are counted from the previous email, so if sending is delayed (caps, weekends) the spacing stays the same.
-
-### 11.2 What each reply does
-
-| They say (examples) | Understood as | Stage → track | Drafted answer | Alert |
-|---|---|---|---|---|
-| "Interested", "yes, send it", "tell me more" | interested | **interested** → warm | thanks + 15-min call link | 🔥 |
-| "How much?" | price question | **interested** → warm | price *range*, starter offer, call for exact quote | 🔥 |
-| "Send your portfolio" | portfolio request | **interested** → warm | proof links + call | 🔥 |
-| "How long does it take?" | timeline question | **interested** → warm | delivery time + call | 🔥 |
-| "I booked a slot for Thursday" | meeting booked | **meeting** → proposal track starts the day after | confirmation | 🔥 |
-| "Send us a quote/proposal" | proposal request | **proposal** → proposal track | "sure, quick call first?" (you write the proposal) | 🔥 needs you |
-| "Let's go ahead", "send the agreement" | ready to buy | **proposal** (chasers stopped) | thanks + next steps | 🔥 **Mark as WON** |
-| "Talk to our manager ravi@…" | referral | **interested** + new contact for Ravi enters cold track with "X suggested I reach out" | thanks | 🔥 needs you |
-| "Not right now", "next quarter", "in 2 months" | not now | **nurture**, first check-in after the time they said (default 60 days) | "may I check back?" | — |
-| "We already have an agency" | already have | **nurture** (first check-in after 90 days) | respectful, offer a second opinion | — |
-| "Not interested", "no thanks" | not interested | **lost** + do-not-contact | one short "understood, thanks" (needs approval) | — |
-| "Unsubscribe", "stop", "remove me" | unsubscribe | **unsubscribed** + do-not-contact | none | — |
-| Out-of-office auto-reply | auto reply | unchanged; next follow-up pushed back 4 days | none | — |
-| Delivery failure | bounce | **bounced**, address marked invalid | none | — |
-| Anything else / unclear | question / other | **interested**, flagged "needs you" | holding reply / AI draft | 🔥 |
-
-**Company rule:** when anyone at a company replies, cold emails to their colleagues stop.
-
-### 11.3 The other tracks
-
-| Track | When | Steps | When it ends without a reply |
-|---|---|---|---|
-| **warm** | interested, no call yet | day 2 booking link · day 5 proof · day 10 close the loop | → nurture |
-| **proposal** | after the call / proposal asked | day 2 "anything to change?" · day 5 FAQ · day 10 smaller first step · day 21 close file | → nurture |
-| **nurture** | not now / already have someone | day 30 check-in · day 60 new idea · day 90 last check-in | → lost |
-| **client_care** | onboarding finished | day 14 check-in · day 30 testimonial · day 60 referral ask · day 120 next project | stays client |
-
-You can change any day, add or remove steps in `config.yaml → sequences`. Available step types (`purpose`):
-`intro, bump, insight, value, breakup, booking_nudge, proof, close_loop, proposal_followup, objection_preempt,
-decision_nudge, close_file, nurture_value, nurture_idea, nurture_final, care_checkin, care_feedback, care_referral, care_next`.
-
-### 11.4 Moving leads yourself
-
-Phone call went well? Met them at an event? Open the lead → **Move this lead** (or `leadpipe stage <id> <stage>`).
-The new stage's track starts immediately. Stages: `new, cold, interested, meeting, proposal, nurture, won, client,
-lost, unsubscribed, bounced, paused`.
-
----
-
-## 12. When a lead says YES: onboarding
-
-Click **Mark as WON** on the lead page (or `leadpipe won <contact_id> --value 12000`). From the *Client Onboarding
-System*: **the sale isn't the start of delivery: remove the chaos before it starts.**
-
-| Step | Email drafted automatically | You tick when it happens | Reminder if stuck |
-|---|---|---|---|
-| 01 Contract | "Next steps: agreement" with your e-sign link (or "attached") | **Contract signed** | every 2 days, max 3 |
-| 02 Payment | invoice / payment link | **Payment received** | every 2 days, max 3 |
-| 03 Welcome document | what happens next, what you need, timeline, where we talk + kickoff booking link | — | — |
-| 04 Kickoff call | — | **Kickoff call done** | kickoff booking reminder |
-| 05 Access | list of accesses (from `onboarding.access_items`), "invite me as a user, never send passwords on chat" | **All access received** | every 2 days, max 3 |
-| 06 Client portal | "everything in one place: <link>" | **Client portal live** | — |
-| Done | client moves to **client care** (check-in, testimonial, referral, next project) | | |
-
-Rules built in: **no payment, no onboarding**. The welcome email is only drafted after you tick *Payment received*.
-Templates for the contract, proposal, welcome document, kickoff agenda, access checklist and portal are in
-[docs/templates/](templates/).
-
-CLI: `leadpipe onboard <contact_id>` shows the checklist; `leadpipe onboard <contact_id> payment_received` ticks a step.
-
----
-
-## 13. Going live: real emails
-
-1. `leadpipe doctor` shows no **FAIL**.
-2. You've reviewed dry-run drafts for a few days and like them.
-3. In `config.yaml` set `sending.mode: smtp` and (if you know it) `sending.warmup.start_date` to the day you started cold sending.
-4. Restart (`Ctrl+C`, then `leadpipe start`). The top bar shows **LIVE**.
-5. Keep approving by hand for the first week. Watch **bounce rate** (keep it under 3%) and replies.
-
-**Emergency stop:** dashboard → *Pause all sending*, or `leadpipe sending pause`. Resume with `leadpipe sending resume`.
-
-**Autopilot** (only when you trust the drafts): Settings → *Autopilot for outreach*. Emails that pass every check go
-out without you. *Autopilot for simple replies* answers interested / price / timeline / portfolio / booked automatically;
-everything else (ready to buy, proposals, referrals, unclear) **always** waits for you.
-
----
-
-## 14. Running 24/7
-
-The engine has to be running for anything to happen automatically. Pick one:
-
-**A. Your own computer (simplest):** `leadpipe start`. Leave the terminal open and the computer awake. If it sleeps,
-nothing breaks: the engine just picks up where it left off.
-On Windows, double-click `deploy\start-windows.bat` (restarts itself if it stops). To start it at logon:
-Task Scheduler → *Create Task* → Trigger *At log on* → Action *Start a program* → that `.bat` file.
-
-**B. A small cloud server (recommended for true 24/7):** any $4–6/month VPS (Hetzner, DigitalOcean, Lightsail, Oracle free tier).
+Settings → **Import leads**, or:
 
 ```bash
-sudo apt update && sudo apt install -y python3-venv git
-git clone https://github.com/NandaniRamoliya/LeadAutomationPipeline.git && cd LeadAutomationPipeline
-python3 -m venv .venv && . .venv/bin/activate && pip install -e .
-leadpipe init && nano .env && leadpipe doctor
-sudo cp deploy/leadpipe.service /etc/systemd/system/     # edit User= and paths inside first
-sudo systemctl daemon-reload && sudo systemctl enable --now leadpipe
-journalctl -u leadpipe -f                                 # live logs
+leadpipe import "https://docs.google.com/spreadsheets/d/…/edit#gid=0" --area "Surat, India" --priority
+leadpipe import my-leads.csv --area "Dubai, UAE"
 ```
 
-To open the dashboard from your laptop safely: `ssh -L 8787:127.0.0.1:8787 you@server` then visit http://localhost:8787.
-Or put it on a domain with HTTPS (section 15).
-
-**C. Docker:**
-
-```bash
-leadpipe init            # or copy config.yaml and .env next to docker-compose.yml
-# set DASHBOARD_PASSWORD in .env (the container listens on 0.0.0.0 internally)
-docker compose up -d
-docker compose logs -f
-```
-
-Data (the database and dry-run emails) lives in `./data`. **Back it up**: it's a single SQLite file, `data/leadpipe.db`.
-
-Only run **one** engine per database (a lock file prevents accidents).
-
----
-
-## 15. Unsubscribe links and calendar bookings (public URL)
-
-Without a public URL, opt-out works by reply ("no thanks" / "unsubscribe"), which is understood automatically. With one,
-you also get a one-click **List-Unsubscribe** header (Gmail's "Unsubscribe" button) and automatic booking detection.
-
-1. Point a subdomain (e.g. `leads.yourdomain.com`) to your server and run Caddy with `deploy/Caddyfile.example` (free HTTPS).
-2. `config.yaml`: `dashboard.public_base_url: "https://leads.yourdomain.com"`.
-3. `.env`: `DASHBOARD_PASSWORD=…` (the dashboard is then password-protected; the unsubscribe page and webhook stay public).
-4. **Calendar webhook**: set `BOOKING_WEBHOOK_TOKEN=some-long-random-text` in `.env`, then add a webhook in your calendar tool:
-   - Cal.com: Settings → Developer → Webhooks → URL `https://leads.yourdomain.com/webhooks/booking?token=…`, event *Booking created*.
-   - Calendly (paid plans): Integrations → Webhooks, same URL, event `invitee.created`.
-
-   When a lead books, they move to **meeting** automatically and you get an alert.
+- **Google Sheets:** in the sheet, *Share → General access → Anyone with the link → Viewer*. Tick *Keep synced* and
+  new rows are imported every 6 hours.
+- **Columns are recognised automatically**, including the ones Google Maps scrapers use: `title`/`name`, `website`,
+  `phone`, `email`, `address`, `city`, `totalScore`/`rating`, `reviewsCount`/`reviews`, `categoryName`/`category`,
+  `instagram`, `facebook`, `linkedin`, `url` (Maps link), plus `priority`/`tier`/`vip` (yes/high/1 = high-value).
+- **High-value** leads (`--priority` or a priority column) are researched and contacted first, get calls/DMs even with
+  a low score, and show a *high-value* badge.
+- Duplicates are merged (same website, Maps id, or name + city), so importing again is safe.
+- Phone numbers are normalised (+91…) and mobile numbers are used for WhatsApp.
 
 ---
 
 ## 16. Alerts on your phone
 
-Hot replies, booked calls and a **daily summary** (at `notifications.daily_digest_hour`) can be sent to:
-- **Email**: `notifications.owner_email` in `config.yaml` (use your normal address, not the sending one).
-- **Telegram**: create a bot with @BotFather, put `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` in `.env`.
-- **Slack / Discord**: an incoming webhook URL in `NOTIFY_WEBHOOK_URL`.
+Hot replies, booked calls and a daily summary can go to:
+- **Telegram:** create a bot with @BotFather, put the token and your chat id in Setup → 5.
+- **Email:** Setup → 5 → *Send hot-lead alerts to* (your normal address).
+- **Slack/Discord:** an incoming-webhook URL in `.env` as `NOTIFY_WEBHOOK_URL`.
 
 ---
 
@@ -532,34 +401,22 @@ Hot replies, booked calls and a **daily summary** (at `notifications.daily_diges
 
 | Command | What it does |
 |---|---|
-| `leadpipe init` | create `config.yaml` + `.env` (asks questions) |
-| `leadpipe doctor` | check settings, mailbox logins, SPF/DKIM/DMARC, AI |
-| `leadpipe demo` | safe demo with made-up leads |
-| `leadpipe train <url>` | AI suggests your profile from your website |
-| `leadpipe signals` / `categories` | explain signals / list business types |
-| `leadpipe start` | **engine + dashboard (24/7)** |
-| `leadpipe run` / `run --once` | engine only / one cycle |
-| `leadpipe dashboard` | dashboard only |
-| `leadpipe discover [--target NAME]` | find businesses now |
-| `leadpipe import file.csv [--target NAME]` | import leads |
-| `leadpipe enrich` | research websites now |
-| `leadpipe leads` / `contacts [--stage X]` | list companies / contacts |
-| `leadpipe write` | enroll leads + write due drafts now |
-| `leadpipe outbox` | list drafts; `outbox show ID`, `approve ID` (`approve` alone = all passing), `reject ID`, `skip ID`, `stop ID` |
-| `leadpipe send [--now]` | send due approved emails now (`--now` ignores office hours/gap, caps still apply) |
-| `leadpipe inbox` | check replies now |
-| `leadpipe stage ID STAGE` | move a contact |
-| `leadpipe won ID [--value N]` | deal won → onboarding |
-| `leadpipe onboard ID [STEP] [--undo]` | show / tick onboarding steps |
-| `leadpipe sending pause` / `resume` | emergency stop |
-| `leadpipe autopilot on/off [--replies]` | approval-free sending |
-| `leadpipe stats` | reply rates, funnel, per step |
-| `leadpipe export [--stage X] [--file out.csv]` | export contacts |
-| `leadpipe suppress email@x.com` / `@domain.com` | never email them |
-| `leadpipe forget email@x.com` | delete all data about a person (erasure request) |
-| `leadpipe simulate-reply ID "text"` | test how a reply would be handled |
-
-To run a second, separate setup (another niche or mailbox), give it its own folder with its own `config.yaml` and `.env`, and use `leadpipe -c that-folder/config.yaml ...`. Its database lives in `that-folder/data/`.
+| `leadpipe start` | run everything (engine + dashboard) |
+| `leadpipe service install` / `status` / `stop` / `start` / `logs` / `uninstall` | run 24/7 in the background |
+| `leadpipe open` | open the dashboard |
+| `leadpipe demo` | safe demo |
+| `leadpipe init` / `doctor` | create settings / check everything |
+| `leadpipe areas` · `areas add "Pune, India"` · `areas skip "X, Y"` | the city-by-city rollout |
+| `leadpipe discover [--area "City, Country"] [--steps 3]` | search now |
+| `leadpipe import <file.csv or sheet link> [--area …] [--priority]` | import leads |
+| `leadpipe enrich` · `write` · `send [--now]` · `inbox` | run one step now |
+| `leadpipe leads` · `contacts [--stage X]` · `stats` | look at the data |
+| `leadpipe outbox [show/approve/reject/skip/stop ID]` | review emails in the terminal |
+| `leadpipe stage ID STAGE` · `won ID` · `onboard ID [STEP]` | move leads / clients |
+| `leadpipe export [--calls] [--file out.csv]` | export contacts, or today's call list for a telecaller |
+| `leadpipe sending pause/resume` · `autopilot on/off [--replies]` | switches |
+| `leadpipe suppress x@y.com` · `forget x@y.com` | never contact / delete all data about a person |
+| `leadpipe simulate-reply ID "text"` | test how a reply is handled |
 
 ---
 
@@ -567,44 +424,43 @@ To run a second, separate setup (another niche or mailbox), give it its own fold
 
 | Problem | Fix |
 |---|---|
-| `command not found: leadpipe` | Activate the venv: `source .venv/bin/activate` (Windows `.venv\Scripts\activate`) |
-| `SyntaxError` right after install on a Mac | The venv was built with Python 3.9. Delete `.venv`, recreate with `python3.13 -m venv .venv` |
-| Dashboard says *Engine stopped* | Run `leadpipe start` (or `run`). Check the terminal / `journalctl -u leadpipe` for errors |
-| Nothing is being sent | Check in this order: top bar not *SENDING PAUSED*; emails are **approved** (Outbox → bottom list); it's inside office hours in *their* timezone, Mon–Fri; today's cap not reached (Overview); `sending.mode` is `smtp` |
-| SMTP login failed | Gmail/Workspace needs an **App Password**, not your normal password; 2-Step Verification must be on |
-| Emails land in spam | Almost always the domain: SPF/DKIM/DMARC (`leadpipe doctor`), finish warm-up, halve the volume, fewer links, plainer text |
-| Discover finds nothing | Use "City, Country" for `area`; try other categories (`leadpipe categories`); OpenStreetMap is weak for some trades: use Google Places or CSV import |
-| Most leads *disqualified* | See the reason on the Leads page. Lower `enrichment.min_score` or raise weights of signals that matter to you |
-| Replies aren't detected | Check `IMAP_*` in `.env` (`leadpipe doctor`). Gmail: IMAP must be enabled in Gmail settings. Use *Log their reply* for phone/DM answers |
-| AI not used | `leadpipe doctor` → AI section. Set `ANTHROPIC_API_KEY`, or install + `claude login`, and `llm.provider: auto` |
-| Bounce rate above 5% | Pause sending. Set `allow_role_emails: false` and `allow_guessed_emails: false`; consider `HUNTER_API_KEY` |
-| "Another engine is already running" | Only one engine per database. Stop the other one, or delete `data/engine.lock` if it crashed |
-| Dashboard "Form expired" | Reload the page and try again |
+| `leadpipe` not found | Activate the venv first (`.venv\Scripts\activate` / `source .venv/bin/activate`). |
+| Home says **Not running** | `leadpipe start`, or `leadpipe service install`. Check `leadpipe service logs`. |
+| Nothing is sent | In order: not *PAUSED*; mode is *LIVE*; emails approved (or autopilot on); inside *their* office hours on a weekday; today's limit not reached. |
+| SMTP login failed | Gmail/Workspace needs an **App Password** (2-Step Verification on). |
+| Emails land in spam | Fix SPF/DKIM/DMARC (`leadpipe doctor`), finish warm-up, lower the daily limit. |
+| No businesses found | Write the area as "City, Country". Try other business types. Add Serper (2,500 free) for trades OpenStreetMap misses. |
+| Most leads "not a fit" | Leads → *Being researched / not a fit* shows why. Lower `min_score`, or raise the weights of problems your service fixes. |
+| Too many / too few calls & DMs | Settings → Setup → 3: tasks per day, minimum score. |
+| Google Sheet import fails | Share it as *Anyone with the link → Viewer*, or download it as CSV and upload. |
+| Replies not detected | IMAP host/port/password in Setup → 4 (Gmail: enable IMAP in Gmail settings). Or log replies by hand. |
+| Bounce rate above 5% | Pause. In `config.yaml`: `allow_role_emails: false`, `allow_pattern_emails: false`. |
+| "Already running" | Only one copy per database. That's normal if the background service is on. |
 
-The **Activity** box on the Overview page and the lead's **History** show exactly what happened and why.
+The **Home → What just happened** list and each lead's **History** show exactly what happened and why.
 
 ---
 
 ## 19. FAQ
 
-**Will it send anything without me?** No. Dry-run is the default, and even in live mode every email waits in the Outbox
-until you approve it, unless you turn on autopilot yourself.
+**Will it send without me?** No. It starts in TEST MODE, and in LIVE mode every email waits on your To-do until you
+approve it, unless you switch on autopilot.
 
-**How many emails per day is safe?** Per mailbox: start at 5, grow to 30–50 after a month of good results. For more
-volume, add more mailboxes/domains (run a second copy with its own config), don't push one mailbox harder.
+**Can I use the dashboard on my phone (for calls)?** Yes. In `config.yaml` set `dashboard.host: "0.0.0.0"` and set
+`DASHBOARD_PASSWORD` in `.env`, restart, then open `http://<your-computer's-IP>:8787` on your phone (same Wi-Fi).
+**📞 Call** buttons dial directly, and **Open WhatsApp** opens the WhatsApp app.
 
-**What reply rate should I expect?** Well-targeted, personal emails: 5–15% replies, 2–5% positive. If you're below 2%
-after 100 emails, the targeting or the offer is wrong. Check Analytics → signals and categories.
+**How many people can it reach?** Email: about 30–50 new + follow-ups per mailbox per day after warm-up (add mailboxes
+to grow). Calls/DMs: as many as you set in *tasks per day*. It never stops finding new areas.
 
-**Does it work for clients abroad?** Yes. Add a target per country with the right timezone. Check that country's rules
-first ([LEGAL_AND_COMPLIANCE.md](LEGAL_AND_COMPLIANCE.md)); some (e.g. Germany, Canada) are strict.
+**What reply rate should I expect?** Targeted, personal outreach: 5–15% replies, 2–5% interested. Below 2% after 100
+people means the targeting or offer needs work (Settings → What's working).
 
-**Can I use LinkedIn / Instagram?** The pipeline drafts messages for leads without email and tracks the follow-ups
-(Manual DMs page), but **you** send them. Automating LinkedIn/Instagram breaks their terms and gets accounts banned.
+**Is it legal?** Cold B2B outreach is legal in many countries *if you follow the rules*, and the system builds most of
+them in. Some countries (Germany, Canada…) are strict. Read [LEGAL_AND_COMPLIANCE.md](LEGAL_AND_COMPLIANCE.md). Not legal advice.
 
-**Where is my data?** Only on your machine/server in `data/leadpipe.db`. With AI on, the lead's public website text and
-the email thread are sent to Claude to write/understand emails.
+**Where is my data?** Only on your computer/server: `data/leadpipe.db`. Back it up. With AI on, a lead's public website
+text and the conversation are sent to Claude to write and understand messages.
 
-**How much does AI cost?** It depends on how many follow-ups each lead gets: one research summary, up to five drafts and
-reading replies. Expect cents per lead, not dollars. For lower cost, set a smaller model in `llm.model` (e.g. `claude-haiku-5-5`).
-Using the `claude` CLI with a Pro/Max plan uses your plan's limits instead of per-token billing.
+**How much does the AI cost?** Optional. With the `claude` command-line tool logged in to your Claude Pro/Max plan it uses
+your plan (no per-message bill). With an API key, expect cents per lead. `llm.max_calls_per_day` caps it.

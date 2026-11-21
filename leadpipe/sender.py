@@ -65,13 +65,18 @@ def day_bounds_utc(cfg: Config, now: datetime | None = None) -> tuple[str, str]:
     return iso(start), iso(start + timedelta(days=1))  # type: ignore[return-value]
 
 
-def todays_cap(db: DB, cfg: Config, now: datetime | None = None) -> int:
+def todays_cap(db: DB, cfg: Config, now: datetime | None = None, mailbox=None) -> int:
+    """Today's limit for one mailbox (warm-up ramp), or for all mailboxes together when mailbox is None."""
+    from .mailboxes import mailboxes
+    if mailbox is None:
+        boxes = mailboxes(cfg)
+        return sum(todays_cap(db, cfg, now, m) for m in boxes) if boxes else 0
     s = cfg.section("sending")
-    cap = int(s.get("daily_cap", 40))
+    cap = int(mailbox.daily_cap or s.get("daily_cap", 40))
     w = s.get("warmup") or {}
     if not w.get("enabled", True):
         return cap
-    start_s = w.get("start_date") or db.kv_get("first_send_date")
+    start_s = mailbox.warmup_start or db.kv_get("first_send_date" + mailbox.kv_suffix)
     if not start_s:
         return min(cap, int(w.get("start_per_day", 5)))
     try:
@@ -82,11 +87,15 @@ def todays_cap(db: DB, cfg: Config, now: datetime | None = None) -> int:
     return min(cap, int(w.get("start_per_day", 5)) + int(w.get("increase_per_day", 2)) * days)
 
 
-def sent_today(db: DB, cfg: Config, now: datetime | None = None, first_touch_only: bool = False) -> int:
+def sent_today(db: DB, cfg: Config, now: datetime | None = None, first_touch_only: bool = False, mailbox=None) -> int:
     a, b = day_bounds_utc(cfg, now)
     extra = " AND kind = 'sequence' AND step = 0 AND sequence = 'cold'" if first_touch_only else ""
+    params: list = [a, b]
+    if mailbox is not None:
+        extra += " AND COALESCE(mailbox, 'main') = ?"
+        params.append(mailbox.name)
     return int(db.scalar(f"SELECT COUNT(*) FROM messages WHERE direction='out' AND channel='email' AND status='sent' "
-                         f"AND sent_at >= ? AND sent_at < ?{extra}", (a, b)) or 0)
+                         f"AND sent_at >= ? AND sent_at < ?{extra}", params) or 0)
 
 
 # ---------------------------------------------------------------------------
@@ -123,13 +132,17 @@ def unsubscribe_url(db: DB, cfg: Config, contact_id: int) -> str | None:
 # ---------------------------------------------------------------------------
 # Building and transmitting
 # ---------------------------------------------------------------------------
-def build_email(db: DB, cfg: Config, msg: dict, contact: dict) -> EmailMessage:
+def build_email(db: DB, cfg: Config, msg: dict, contact: dict, mailbox=None) -> EmailMessage:
+    from .mailboxes import mailboxes
+    mailbox = mailbox or (mailboxes(cfg) or [None])[0]
+    from_email = mailbox.email if mailbox else (cfg.from_email or "me@localhost")
+    from_name = mailbox.from_name if mailbox else cfg.from_name
     em = EmailMessage()
-    em["From"] = formataddr((cfg.from_name, cfg.from_email or "me@localhost"))
+    em["From"] = formataddr((from_name, from_email))
     em["To"] = formataddr((contact.get("full_name") or "", contact["email"]))
     em["Subject"] = msg["subject"] or "(no subject)"
     em["Date"] = format_datetime(utcnow())
-    em["Message-ID"] = make_msgid(domain=cfg.sending_domain)
+    em["Message-ID"] = make_msgid(domain=from_email.split("@")[-1])
     reply_to = cfg.env("REPLY_TO")
     if reply_to:
         em["Reply-To"] = reply_to
@@ -148,7 +161,7 @@ def build_email(db: DB, cfg: Config, msg: dict, contact: dict) -> EmailMessage:
 
     unsub = unsubscribe_url(db, cfg, contact["id"]) if msg["kind"] == "sequence" else None
     if msg["kind"] == "sequence":
-        targets = [f"<mailto:{cfg.from_email}?subject=unsubscribe>"]
+        targets = [f"<mailto:{from_email}?subject=unsubscribe>"]
         if unsub:
             targets.insert(0, f"<{unsub}>")
             em["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click"
@@ -165,7 +178,7 @@ class Mailer:
         self.cfg = cfg
         self.mode = (mode or cfg.get("sending.mode", "dry_run")).lower()
 
-    def send(self, em: EmailMessage) -> None:
+    def send(self, em: EmailMessage, mailbox=None) -> None:
         if self.mode != "smtp":
             out = self.cfg.data_dir / "dry_run"
             out.mkdir(parents=True, exist_ok=True)
@@ -173,23 +186,22 @@ class Mailer:
             safe = "".join(ch for ch in em["To"] if ch.isalnum() or ch in "@._-")[:60]
             (out / f"{stamp}-{safe}-{secrets.token_hex(3)}.eml").write_bytes(bytes(em))
             return
-        host = self.cfg.env("SMTP_HOST")
-        port = int(self.cfg.env("SMTP_PORT", "587") or 587)
-        security = (self.cfg.env("SMTP_SECURITY", "starttls") or "starttls").lower()
-        user, password = self.cfg.env("SMTP_USER"), self.cfg.env("SMTP_PASSWORD")
-        if not host:
-            raise RuntimeError("SMTP_HOST is not set in .env")
-        if security == "ssl":
-            server: smtplib.SMTP = smtplib.SMTP_SSL(host, port, timeout=60)
+        if mailbox is None:
+            from .mailboxes import mailboxes
+            mailbox = (mailboxes(self.cfg) or [None])[0]
+        if mailbox is None or not mailbox.smtp_host:
+            raise RuntimeError("SMTP_HOST is not set for this mailbox (.env or config.yaml mailboxes)")
+        if mailbox.smtp_security == "ssl":
+            server: smtplib.SMTP = smtplib.SMTP_SSL(mailbox.smtp_host, mailbox.smtp_port, timeout=60)
         else:
-            server = smtplib.SMTP(host, port, timeout=60)
+            server = smtplib.SMTP(mailbox.smtp_host, mailbox.smtp_port, timeout=60)
         try:
             server.ehlo()
-            if security == "starttls":
+            if mailbox.smtp_security == "starttls":
                 server.starttls()
                 server.ehlo()
-            if user:
-                server.login(user, password)
+            if mailbox.smtp_user:
+                server.login(mailbox.smtp_user, mailbox.smtp_password)
             server.send_message(em)
         finally:
             try:
@@ -226,81 +238,99 @@ def _hard_check(db: DB, cfg: Config, msg: dict, contact: dict | None) -> str | N
 
 def send_due(db: DB, cfg: Config, mailer: Mailer | None = None, now: datetime | None = None,
              respect_timing: bool = True, max_send: int = 1) -> int:
-    """Send up to `max_send` due emails. The engine calls this every tick, so pace is set by the random gap."""
+    """Send due approved emails: at most `max_send` per mailbox per call. The engine calls this every tick,
+    so the pace is set by each mailbox's random gap, warm-up cap and the recipients' office hours."""
+    from .mailboxes import by_name, mailboxes
     if db.kv_get("sending_paused", False):
         return 0
     now = now or utcnow()
     mailer = mailer or Mailer(cfg)
     s = cfg.section("sending")
-    if respect_timing:
-        nxt = parse_iso(db.kv_get("next_send_at"))
-        if nxt and now < nxt:
-            return 0
-    cap = todays_cap(db, cfg, now)
-    if sent_today(db, cfg, now) >= cap:
+    new_quota = int(s.get("new_leads_per_day", 15))
+    boxes = mailboxes(cfg)
+    if not boxes:
         return 0
-    new_quota = int(s.get("new_leads_per_day", 10))
-
+    # Mailboxes with the most room left go first.
+    boxes.sort(key=lambda m: todays_cap(db, cfg, now, m) - sent_today(db, cfg, now, mailbox=m), reverse=True)
     rows = db.all(f"""SELECT * FROM messages WHERE direction='out' AND status='approved' AND channel='email'
                       AND (scheduled_for IS NULL OR scheduled_for <= ?) ORDER BY {PRIORITY_SQL}, scheduled_for, id
-                      LIMIT 50""", (iso(now),))
-    sent = 0
-    for msg in rows:
-        if sent >= max_send or sent_today(db, cfg, now) >= cap:
-            break
-        contact = db.contact(msg["contact_id"])
-        reason = _hard_check(db, cfg, msg, contact)
-        if reason:
-            db.update("messages", msg["id"], {"status": "cancelled", "error": reason})
-            db.log("send", f"cancelled message {msg['id']}: {reason}", contact_id=msg["contact_id"])
-            continue
-        company = db.company(contact["company_id"]) or {}
-        first_touch = msg["kind"] == "sequence" and msg["sequence"] == "cold" and msg["step"] == 0
-        if first_touch and sent_today(db, cfg, now, first_touch_only=True) >= new_quota:
-            continue
-        if respect_timing and not in_office_hours(cfg, company.get("timezone"), now):
-            continue
-        if msg["kind"] == "sequence" and s.get("one_company_per_day", True):
-            recent = db.scalar("""SELECT 1 FROM messages WHERE company_id=? AND contact_id != ? AND direction='out'
-                                  AND status='sent' AND kind='sequence' AND sent_at >= ?""",
-                               (contact["company_id"], contact["id"], iso(now - timedelta(hours=20))))
-            if recent:
+                      LIMIT 100""", (iso(now),))
+    total = 0
+    used: set[int] = set()
+    for mb in boxes:
+        if respect_timing:
+            nxt = parse_iso(db.kv_get("next_send_at" + mb.kv_suffix))
+            if nxt and now < nxt:
                 continue
-        issues = compliance.check_message(cfg, msg["subject"] or "", msg["body"] or "", msg["purpose"],
-                                          company.get("name", ""), kind=msg["kind"])
-        if compliance.blocking(issues):
-            db.update("messages", msg["id"], {"status": "pending", "needs_human": 1, "check_issues": json.dumps(issues)})
-            db.log("send", f"message {msg['id']} failed checks; moved back to Outbox", level="warn",
-                   contact_id=contact["id"])
-            continue
+        cap = todays_cap(db, cfg, now, mb)
+        sent = 0
+        for msg in rows:
+            if msg["id"] in used:
+                continue
+            if sent >= max_send or sent_today(db, cfg, now, mailbox=mb) >= cap:
+                break
+            contact = db.contact(msg["contact_id"])
+            reason = _hard_check(db, cfg, msg, contact)
+            if reason:
+                used.add(msg["id"])
+                db.update("messages", msg["id"], {"status": "cancelled", "error": reason})
+                db.log("send", f"cancelled message {msg['id']}: {reason}", contact_id=msg["contact_id"])
+                continue
+            owner = contact.get("mailbox")
+            if owner and owner != mb.name and by_name(cfg, owner) is not None:
+                continue  # this lead belongs to another mailbox
+            company = db.company(contact["company_id"]) or {}
+            first_touch = msg["kind"] == "sequence" and msg["sequence"] == "cold" and msg["step"] == 0
+            if first_touch and sent_today(db, cfg, now, first_touch_only=True) >= new_quota:
+                continue
+            if respect_timing and not in_office_hours(cfg, company.get("timezone"), now):
+                continue
+            if msg["kind"] == "sequence" and s.get("one_company_per_day", True):
+                recent = db.scalar("""SELECT 1 FROM messages WHERE company_id=? AND contact_id != ? AND direction='out'
+                                      AND status='sent' AND kind='sequence' AND channel='email' AND sent_at >= ?""",
+                                   (contact["company_id"], contact["id"], iso(now - timedelta(hours=20))))
+                if recent:
+                    continue
+            issues = compliance.check_message(cfg, msg["subject"] or "", msg["body"] or "", msg["purpose"],
+                                              company.get("name", ""), kind=msg["kind"])
+            if compliance.blocking(issues):
+                used.add(msg["id"])
+                db.update("messages", msg["id"], {"status": "pending", "needs_human": 1, "check_issues": json.dumps(issues)})
+                db.log("send", f"message {msg['id']} failed checks; moved back to your To-do", level="warn",
+                       contact_id=contact["id"])
+                continue
 
-        em = build_email(db, cfg, msg, contact)
-        try:
-            mailer.send(em)
-        except smtplib.SMTPRecipientsRefused as exc:
-            db.update("messages", msg["id"], {"status": "failed", "error": f"recipient refused: {exc}"[:500]})
-            set_stage(db, cfg, contact["id"], "bounced", "recipient refused by mail server")
-            continue
-        except Exception as exc:
-            db.update("messages", msg["id"], {"status": "failed", "error": f"{type(exc).__name__}: {exc}"[:500]})
-            db.log("send", f"send failed for {contact['email']}: {exc}", level="error", contact_id=contact["id"])
-            # Back off for 15 minutes on SMTP trouble so we don't hammer the server.
-            db.kv_set("next_send_at", iso(now + timedelta(minutes=15)))
-            return sent
-        db.update("messages", msg["id"], {"status": "sent", "sent_at": iso(now), "message_id": em["Message-ID"],
-                                          "from_addr": cfg.from_email, "to_addr": contact["email"]})
-        if not db.kv_get("first_send_date"):
-            db.kv_set("first_send_date", local_today(cfg, now).isoformat())
-        if msg["kind"] == "sequence":
-            advance_after_send(db, cfg, msg)
-        else:
-            db.update("contacts", contact["id"], {"last_outbound_at": iso(now)})
-        sent += 1
-        db.log("send", f"{'[dry-run] ' if mailer.mode != 'smtp' else ''}sent '{msg['subject']}' to {contact['email']}",
-               contact_id=contact["id"], company_id=contact["company_id"])
-        gap = random.uniform(float(s.get("min_gap_minutes", 3)), float(s.get("max_gap_minutes", 9)))
-        db.kv_set("next_send_at", iso(now + timedelta(minutes=gap)))
-    return sent
+            used.add(msg["id"])
+            em = build_email(db, cfg, msg, contact, mb)
+            try:
+                mailer.send(em, mb)
+            except smtplib.SMTPRecipientsRefused as exc:
+                db.update("messages", msg["id"], {"status": "failed", "error": f"recipient refused: {exc}"[:500]})
+                set_stage(db, cfg, contact["id"], "bounced", "recipient refused by mail server")
+                continue
+            except Exception as exc:
+                db.update("messages", msg["id"], {"status": "failed", "error": f"{type(exc).__name__}: {exc}"[:500]})
+                db.log("send", f"[{mb.name}] send failed for {contact['email']}: {exc}", level="error", contact_id=contact["id"])
+                # Back off this mailbox for 15 minutes so we don't hammer the server.
+                db.kv_set("next_send_at" + mb.kv_suffix, iso(now + timedelta(minutes=15)))
+                break
+            db.update("messages", msg["id"], {"status": "sent", "sent_at": iso(now), "message_id": em["Message-ID"],
+                                              "from_addr": mb.email, "to_addr": contact["email"], "mailbox": mb.name})
+            if not owner:
+                db.update("contacts", contact["id"], {"mailbox": mb.name})
+            if not db.kv_get("first_send_date" + mb.kv_suffix):
+                db.kv_set("first_send_date" + mb.kv_suffix, local_today(cfg, now).isoformat())
+            if msg["kind"] == "sequence":
+                advance_after_send(db, cfg, msg)
+            else:
+                db.update("contacts", contact["id"], {"last_outbound_at": iso(now)})
+            sent += 1
+            total += 1
+            db.log("send", f"{'[dry-run] ' if mailer.mode != 'smtp' else ''}[{mb.name}] sent '{msg['subject']}' to {contact['email']}",
+                   contact_id=contact["id"], company_id=contact["company_id"])
+            gap = random.uniform(float(s.get("min_gap_minutes", 3)), float(s.get("max_gap_minutes", 9)))
+            db.kv_set("next_send_at" + mb.kv_suffix, iso(now + timedelta(minutes=gap)))
+    return total
 
 
 def mark_manual_done(db: DB, cfg: Config, message_id: int) -> None:

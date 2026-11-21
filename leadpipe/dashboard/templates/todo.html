@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}To-do · Lead Pipeline{% endblock %}
+{% block content %}
+<h1>To-do</h1>
+<p class="muted">Everything that needs you, most important first. Everything else happens automatically.</p>
+{% set total = namespace(n=0) %}
+{% for key, title, help in sections %}{% set total.n = total.n + (t[key]|length) %}{% endfor %}
+{% if not total.n %}<div class="card big">🎉 Nothing to do right now. The system is finding, researching and following up on its own.</div>{% endif %}
+
+{% for key, title, help in sections if t[key] %}
+<h2>{{ title }} <span class="pill">{{ t[key]|length }}</span></h2>
+<p class="help">{{ help }}</p>
+
+{% if key == 'emails' %}
+  <form method="post" action="{{ url_for('approve_all') }}" style="margin-bottom:10px"><input type="hidden" name="_csrf" value="{{ csrf }}">
+    <button class="primary">✓ Approve all {{ t[key]|length }} (that passed the checks)</button>
+    <span class="small muted">Or open each one below to read and edit. Tip: turn on Autopilot in Settings once you trust the drafts.</span></form>
+{% endif %}
+
+{% for m in t[key] %}
+  {% if key == 'clients' %}
+  <div class="task"><div class="head"><b>{{ m.company }}</b><span class="muted">{{ m.label }}?</span></div>
+    <form method="post" action="{{ url_for('todo_client', cid=m.contact_id) }}" class="row"><input type="hidden" name="_csrf" value="{{ csrf }}">
+      <input type="hidden" name="key" value="{{ m.key }}"><button class="primary">Yes, done</button>
+      <a class="btn" href="{{ url_for('lead', cid=m.contact_id) }}">Open client</a></form></div>
+  {% else %}
+  <form class="task" method="post">
+    <input type="hidden" name="_csrf" value="{{ csrf }}">
+    <div class="head">
+      <span class="big">{{ m.icon }}</span>
+      <a href="{{ url_for('lead', cid=m.contact_id) }}"><b>{{ m.company or '?' }}</b></a>
+      <span class="small muted">{{ m.full_name or '' }}{% if m.channel == 'email' %} &lt;{{ m.to_addr }}&gt;{% elif m.to_addr %} · {{ m.channel_label }}: {{ m.to_addr }}{% endif %}</span>
+      {% if m.priority %}<span class="pill acc">high-value</span>{% endif %}
+      {% if m.kind == 'sequence' %}<span class="pill">{{ m.purpose|replace('_', ' ') }}</span>{% endif %}
+      {% if m.kind == 'onboarding' %}<span class="pill ok">client: {{ m.purpose|replace('_', ' ') }}</span>{% endif %}
+    </div>
+    {% if m.their_message %}<div class="small muted">They wrote ({{ INTENTS.get(m.their_message.intent, m.their_message.intent) }}):</div>
+      <div class="their">{{ m.their_message.body|short(600) }}</div>{% endif %}
+
+    {% if m.channel == 'call' %}
+      <div><a class="btn primary cta" href="tel:{{ m.to_addr }}">📞 Call {{ m.to_addr }}</a>
+        {% if m.call_attempts %}<span class="small muted">attempt {{ m.call_attempts + 1 }}</span>{% endif %}</div>
+      <details open><summary>Script</summary><pre class="script">{{ m.body }}</pre></details>
+      <input name="notes" placeholder="Notes (optional): what they said, best time to call back…" style="margin:6px 0">
+      <div class="row">{% for k, label in outcomes.items() %}
+        <button class="{{ 'primary' if k in ('interested','booked') else ('danger' if k=='not_interested' else '') }} small"
+                formaction="{{ url_for('todo_action', mid=m.id, action='call') }}" name="outcome" value="{{ k }}">{{ label }}</button>{% endfor %}
+        <button class="small" formaction="{{ url_for('todo_action', mid=m.id, action='skip') }}">Skip</button></div>
+    {% else %}
+      {% if m.channel == 'email' %}<input name="subject" value="{{ m.subject or '' }}" placeholder="Subject">{% endif %}
+      <textarea name="body" id="body{{ m.id }}" style="margin-top:6px;{{ 'min-height:90px' if m.channel != 'email' }}">{{ m.body }}</textarea>
+      {% if m.channel == 'email' %}<div class="small muted">Your signature, address and opt-out line are added automatically.</div>{% endif %}
+      {% if m.issues %}<ul class="issues">{% for i in m.issues %}<li class="{{ i.level }}">{{ '⛔' if i.level=='block' else '⚠️' }} {{ i.detail }}</li>{% endfor %}</ul>{% endif %}
+      <div class="row" style="margin-top:8px">
+        {% if m.channel == 'email' %}
+          <button class="primary" formaction="{{ url_for('todo_action', mid=m.id, action='send') }}">✓ {{ 'Send reply' if m.kind == 'reply' else 'Approve' }}</button>
+          <button formaction="{{ url_for('todo_action', mid=m.id, action='save') }}">Save edits</button>
+          {% if m.kind == 'sequence' %}<button formaction="{{ url_for('todo_action', mid=m.id, action='rewrite') }}">Write another version</button>
+          <button formaction="{{ url_for('todo_action', mid=m.id, action='skip') }}">Skip this one</button>{% else %}
+          <button formaction="{{ url_for('todo_action', mid=m.id, action='discard') }}">I'll answer myself</button>{% endif %}
+        {% else %}
+          {% if m.action_url %}<a class="btn primary" href="{{ m.action_url }}" target="_blank" rel="noopener" data-copy="body{{ m.id }}">
+            {{ 'Open WhatsApp (message ready)' if m.channel == 'whatsapp' else 'Copy message & open ' ~ m.channel_label }}</a>{% endif %}
+          <button type="button" data-copy="body{{ m.id }}">Copy</button>
+          <button class="primary" formaction="{{ url_for('todo_action', mid=m.id, action='done') }}">✓ I sent it</button>
+          <button formaction="{{ url_for('todo_action', mid=m.id, action='skip') }}">Skip</button>
+        {% endif %}
+        <button class="danger" formaction="{{ url_for('todo_action', mid=m.id, action='stop') }}">Stop contacting them</button>
+      </div>
+    {% endif %}
+  </form>
+  {% endif %}
+{% endfor %}
+{% endfor %}
+{% endblock %}

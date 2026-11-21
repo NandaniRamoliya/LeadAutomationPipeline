@@ -2,32 +2,165 @@
 {% block title %}Settings · Lead Pipeline{% endblock %}
 {% block content %}
 <h1>Settings</h1>
+<div class="tabs">
+  {% for k, label in [('setup','Setup'), ('reach','Where to reach'), ('automation','Automation & 24/7'), ('import','Import leads'), ('dnc','Do-not-contact')] %}
+  <a class="{{ 'on' if tab == k }}" href="{{ url_for('settings', tab=k) }}">{{ label }}</a>{% endfor %}
+  <a href="{{ url_for('insights') }}">What's working</a>
+</div>
+{% set p = cfg.data.profile %}{% set r = cfg.data.reach %}
+
+{% if tab == 'setup' %}
+<form method="post" action="{{ url_for('settings_setup') }}">
+  <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="tab" value="setup">
+  <fieldset><legend>1. Your business</legend>
+    <p class="help">Every message is written from this. Be specific and honest: real results beat big words.</p>
+    <div class="formgrid">
+      <label>Your name<input name="your_name" value="{{ p.your_name }}"></label>
+      <label>Business name<input name="business_name" value="{{ p.business_name }}"></label>
+      <label>Your website<input name="website" value="{{ p.website }}"></label>
+      <label>What you sell (owner's words)<input name="service" value="{{ p.service }}" placeholder="websites with online booking"></label>
+      <label>Small first offer<input name="starter_offer" value="{{ p.starter_offer }}" placeholder="a one-page website in 5 days"></label>
+      <label>Price range (only said when asked)<input name="price_range" value="{{ p.price_range }}"></label>
+      <label>Delivery time<input name="delivery_time" value="{{ p.delivery_time }}"></label>
+      <label>Free quick win you offer<input name="quick_win" value="{{ p.quick_win }}"></label>
+      <label>Calendar booking link<input name="booking_link" value="{{ p.booking_link }}" placeholder="https://cal.com/you/15min"></label>
+      <label>Postal address (legal footer)<input name="physical_address" value="{{ p.physical_address }}"></label>
+    </div>
+    <div class="formgrid" style="margin-top:10px">
+      <label>One sentence about your service<textarea name="service_long" style="min-height:60px">{{ p.service_long }}</textarea></label>
+      <label>Proof: real results, one per line, starting with "built…/helped…"<textarea name="proof" style="min-height:60px">{{ (p.proof or [])|join('\n') }}</textarea></label>
+      <label>Portfolio links (comma separated)<textarea name="proof_links" style="min-height:60px">{{ (p.proof_links or [])|join(', ') }}</textarea></label>
+      <label>Email signature<textarea name="signature" style="min-height:60px">{{ p.signature }}</textarea></label>
+    </div>
+  </fieldset>
+
+  <fieldset><legend>2. Who to reach, and where</legend>
+    <p class="help">It finishes one area completely, then moves to the next by itself: your list first, then the rest of your country, then the world.</p>
+    <div class="formgrid">
+      <label>Business types (comma separated)<input name="business_types" value="{{ (r.business_types or [])|join(', ') }}" placeholder="dentist, cafe, gym, salon"></label>
+      <label>Start with (City, Country)<input name="start_area" value="{{ r.start_area }}" placeholder="Surat, India"></label>
+      <label>Your timezone<input name="timezone" value="{{ cfg.data.engine.timezone }}" placeholder="Asia/Kolkata"></label>
+      <label>Then these areas (one per line)<textarea name="next_areas" style="min-height:60px">{{ (r.next_areas or [])|join('\n') }}</textarea></label>
+      <label>Then these countries, city by city (codes)<input name="countries" value="{{ (r.countries or [])|join(', ') }}"></label>
+      <label>Never search in (country codes)<input name="skip_countries" value="{{ (r.skip_countries or [])|join(', ') }}" placeholder="DE, CA"></label>
+    </div>
+    <label class="check" style="margin-top:8px"><input type="checkbox" name="world_rollout" value="1" {{ 'checked' if r.world_rollout }}> After my areas, keep going: rest of my country, then the countries above</label>
+    <p class="small muted">Business types: {{ ', '.join(['dentist','clinic','doctor','cafe','restaurant','bakery','hotel','salon','spa','gym','school','coaching','lawyer','accountant','real_estate','architect','car_repair','plumber','electrician','interior_designer','travel_agency','photographer','jewellery','clothes','furniture','optician']) }} … or an OpenStreetMap tag like shop=bicycle.</p>
+  </fieldset>
+
+  <fieldset><legend>3. Channels</legend>
+    <p class="help">Email goes out automatically. WhatsApp, Instagram, LinkedIn, X, Facebook and calls are written for you and appear on your To-do as one-click tasks (platforms ban automated messaging, and auto-dialling is illegal in many countries).</p>
+    <div>{% for c in ALL_CHANNELS %}<label class="check"><input type="checkbox" name="channels" value="{{ c }}" {{ 'checked' if c in (cfg.data.channels.enabled or []) }}> {{ ICONS[c] }} {{ LABELS[c] }}</label>{% endfor %}</div>
+    <div class="formgrid" style="margin-top:8px">
+      <label>Max calls + DMs per day<input name="tasks_per_day" value="{{ cfg.data.channels.tasks_per_day }}"></label>
+      <label>Extra calls/DMs only for leads scoring at least<input name="min_score_for_tasks" value="{{ cfg.data.channels.min_score_for_tasks }}"></label>
+    </div>
+  </fieldset>
+
+  <fieldset><legend>4. Your email (sending mailbox)</legend>
+    <p class="help">Use a separate domain (e.g. get{{ (p.website or 'yourname.com')|replace('https://','')|replace('http://','')|replace('www.','') }}) with SPF, DKIM and DMARC set up. Gmail/Workspace needs an App Password. Passwords are stored only in your local .env file.</p>
+    <div class="formgrid">
+      <label>From email<input name="FROM_EMAIL" value="{{ env.FROM_EMAIL or '' }}"></label>
+      <label>From name<input name="FROM_NAME" value="{{ env.FROM_NAME or '' }}"></label>
+      <label>SMTP host<input name="SMTP_HOST" value="{{ env.SMTP_HOST or '' }}" placeholder="smtp.gmail.com"></label>
+      <label>SMTP port<input name="SMTP_PORT" value="{{ env.SMTP_PORT or '587' }}"></label>
+      <label>Security<select name="SMTP_SECURITY">{% for o in ['starttls','ssl','none'] %}<option {{ 'selected' if (env.SMTP_SECURITY or 'starttls') == o }}>{{ o }}</option>{% endfor %}</select></label>
+      <label>Login (usually the email)<input name="SMTP_USER" value="{{ env.SMTP_USER or '' }}"></label>
+      <label>Password / App Password<input name="SMTP_PASSWORD" type="password" placeholder="{{ 'saved, leave blank to keep' if env.SMTP_PASSWORD else '' }}"></label>
+      <label>IMAP host (to read replies)<input name="IMAP_HOST" value="{{ env.IMAP_HOST or '' }}" placeholder="imap.gmail.com"></label>
+      <label>IMAP port<input name="IMAP_PORT" value="{{ env.IMAP_PORT or '993' }}"></label>
+    </div>
+    <div class="formgrid" style="margin-top:8px">
+      <label>Emails per day per mailbox (after warm-up)<input name="daily_cap" value="{{ cfg.data.sending.daily_cap }}"></label>
+      <label>New businesses per day<input name="new_leads_per_day" value="{{ cfg.data.sending.new_leads_per_day }}"></label>
+    </div>
+    <label class="check" style="margin-top:8px"><input type="checkbox" name="live" value="1" {{ 'checked' if cfg.data.sending.mode == 'smtp' }}> <b>LIVE: really send emails</b> (off = test mode, emails saved as files)</label>
+    <p class="small muted">Mailboxes in use: {% for m in mailboxes %}{{ m.name }} ({{ m.email }}){{ ', ' if not loop.last }}{% endfor %}. To send more per day, add mailboxes in config.yaml → mailboxes.</p>
+  </fieldset>
+
+  <fieldset><legend>5. Optional extras</legend>
+    <div class="formgrid">
+      <label>AI writer<select name="llm_provider">{% for o, l in [('auto','Automatic (Claude if available)'),('anthropic','Claude API key'),('claude_cli','My Claude Pro/Max plan (claude CLI)'),('none','Off: built-in templates')] %}<option value="{{ o }}" {{ 'selected' if cfg.data.llm.provider == o }}>{{ l }}</option>{% endfor %}</select></label>
+      <label>Claude API key<input name="ANTHROPIC_API_KEY" type="password" placeholder="{{ 'saved, leave blank to keep' if env.ANTHROPIC_API_KEY else 'optional' }}"></label>
+      <label>Serper key (Google Maps leads, 2,500 free)<input name="SERPER_API_KEY" value="{{ env.SERPER_API_KEY or '' }}"></label>
+      <label>Google Places key (paid, best coverage)<input name="GOOGLE_PLACES_API_KEY" value="{{ env.GOOGLE_PLACES_API_KEY or '' }}"></label>
+      <label>Send hot-lead alerts to (your email)<input name="owner_email" value="{{ cfg.data.notifications.owner_email }}"></label>
+      <label>Telegram bot token (alerts on phone)<input name="TELEGRAM_BOT_TOKEN" value="{{ env.TELEGRAM_BOT_TOKEN or '' }}"></label>
+      <label>Telegram chat id<input name="TELEGRAM_CHAT_ID" value="{{ env.TELEGRAM_CHAT_ID or '' }}"></label>
+    </div>
+  </fieldset>
+  <button class="primary cta">Save settings</button>
+  <span class="small muted">Saved to config.yaml and .env. The running engine picks them up within a minute.</span>
+</form>
+
+{% elif tab == 'reach' %}
+<div class="card">
+  <form method="post" action="{{ url_for('settings_area') }}" class="row"><input type="hidden" name="_csrf" value="{{ csrf }}">
+    <input name="name" placeholder="Search this area next: 'City, Country'" style="max-width:340px"><button class="primary">Do this area next</button></form>
+  <p class="small muted">Business types: <b>{{ (r.business_types or [])|join(', ') }}</b> · change them in Setup.</p>
+</div>
+<div class="table-wrap" style="margin-top:12px"><table>
+  <tr><th>Area</th><th>Status</th><th>Progress</th><th>Businesses found</th><th></th></tr>
+  {% for a in areas %}
+  <tr class="{{ 'dim' if a.status in ('skipped','failed') }}">
+    <td>{{ a.name }}{% if a.timezone %}<div class="small muted">{{ a.timezone }}</div>{% endif %}</td>
+    <td><span class="pill {{ 'ok' if a.status=='active' else ('acc' if a.status=='done' else ('bad' if a.status=='failed' else '')) }}">{{ {'active':'working on it','pending':'waiting','done':'finished','skipped':'skipped','failed':'not found'}.get(a.status, a.status) }}</span>
+      {% if a.note %}<div class="small muted">{{ a.note }}</div>{% endif %}</td>
+    <td class="small">{{ a.tile }}/{{ a.tiles or '?' }}</td><td>{{ a.found }}</td>
+    <td class="row">{% for act, label in [('next','Do next'),('skip','Skip'),('redo','Search again')] %}
+      {% if not (act=='next' and a.status=='active') and not (act=='skip' and a.status in ('skipped','done')) and not (act=='redo' and a.status in ('pending','active')) %}
+      <form method="post" action="{{ url_for('settings_area_action', aid=a.id, action=act) }}"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="small">{{ label }}</button></form>{% endif %}{% endfor %}</td>
+  </tr>{% else %}<tr><td colspan="5" class="muted">Set a start area in Setup.</td></tr>{% endfor %}
+</table></div>
+
+{% elif tab == 'automation' %}
 <div class="grid2">
 <div class="card">
-  <h3>Switches</h3>
+  <h3>Runs 24/7 in the background</h3>
+  <p>Installed as a background service: <b>{{ 'Yes' if service.installed else 'No' }}</b> · engine running: <b>{{ 'Yes' if service.running or status.alive else 'No' }}</b></p>
+  <p class="small muted">When installed, it starts with your computer, keeps the computer awake while working, and restarts itself if it ever stops. If the computer is shut down it can't work; for true 24/7 use a small cloud server (see the user guide).</p>
+  <form method="post" action="{{ url_for('engine_action', action='uninstall' if service.installed else 'install') }}"><input type="hidden" name="_csrf" value="{{ csrf }}">
+    <button class="{{ '' if service.installed else 'primary' }}">{{ 'Remove background service' if service.installed else 'Run in background always' }}</button></form>
+  <p class="small muted">Log file: {{ service.log }}</p>
+</div>
+<div class="card">
+  <h3>Approval</h3>
   {% for key, label, on, help in [
-     ('sending_paused', 'Pause ALL sending', status.paused, 'Emergency stop. Nothing leaves until you resume.'),
-     ('autopilot_cold', 'Autopilot for outreach', status.autopilot_cold, 'ON: outreach emails that pass every check go out without your approval. Turn on only after a week or two of reviewing drafts.'),
-     ('autopilot_replies', 'Autopilot for simple replies', status.autopilot_replies, 'ON: answers to "interested / how much / how long / portfolio / booked" go out automatically. Everything else still waits for you.')] %}
+     ('autopilot_cold', 'Autopilot for outreach emails', status.autopilot_cold, 'ON: emails that pass every check go out without your OK. Turn on after 1–2 weeks of reviewing drafts.'),
+     ('autopilot_replies', 'Autopilot for simple replies', status.autopilot_replies, 'ON: answers to "interested / how much / how long / portfolio / booked" go out by themselves. Everything else still waits for you.'),
+     ('sending_paused', 'Pause email sending', status.paused, 'Emergency stop for email only.')] %}
   <form method="post" action="{{ url_for('toggle', key=key) }}" class="row" style="margin:10px 0">
     <input type="hidden" name="_csrf" value="{{ csrf }}">
     <span style="flex:1"><b>{{ label }}</b>: <span class="pill {{ 'ok' if on else '' }}">{{ 'ON' if on else 'OFF' }}</span><br><span class="small muted">{{ help }}</span></span>
-    <button class="small">Turn {{ 'off' if on else 'on' }}</button>
-  </form>{% endfor %}
-  <p class="small muted">Sending mode: <b>{{ status.mode }}</b>. Change <code>sending.mode</code> in config.yaml (<code>dry_run</code> saves emails to <code>data/dry_run/</code>; <code>smtp</code> sends for real), then restart.</p>
+    <button class="small">Turn {{ 'off' if on else 'on' }}</button></form>{% endfor %}
 </div>
+</div>
+<h3 style="margin-top:14px">Run a step now</h3>
+<div class="row">{% for job, label in [('discover','Find new businesses'),('enrich','Research websites'),('write','Write messages'),('inbox','Check replies'),('onboarding','Advance onboarding')] %}
+  <form method="post" action="{{ url_for('run_job', job=job) }}"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="small">{{ label }}</button></form>{% endfor %}</div>
+
+{% elif tab == 'import' %}
 <div class="card">
-  <h3>Your profile (from config.yaml)</h3>
-  <table class="small">{% for k in ['your_name','business_name','service','starter_offer','price_range','quick_win','booking_link','physical_address'] %}
-    <tr><td class="muted">{{ k }}</td><td>{{ profile.get(k) }}</td></tr>{% endfor %}
-    <tr><td class="muted">proof</td><td>{{ (profile.get('proof') or [])|join('; ') }}</td></tr></table>
-  <h3 style="margin-top:12px">Targets</h3>
-  <ul class="small">{% for t in targets %}<li><b>{{ t.name }}</b>: {{ t.categories|join(', ') }} in {{ t.area }} ({{ t.timezone }})</li>{% endfor %}</ul>
-  <p class="small muted">Edit config.yaml and restart to change these. Run <code>leadpipe doctor</code> after changes.</p>
+  <h3>Import your own leads</h3>
+  <p class="small muted">Your Google Maps scrape, a list of high-value clients, Apollo, LinkedIn Sales Navigator… Columns are recognised automatically
+  (name/title, website, phone, email, instagram, address, rating, reviews, category…). Duplicates are merged, so importing again is safe.</p>
+  <form method="post" action="{{ url_for('settings_import') }}" enctype="multipart/form-data">
+    <input type="hidden" name="_csrf" value="{{ csrf }}">
+    <div class="formgrid">
+      <label>Google Sheets link (Share → "Anyone with the link")<input name="url" placeholder="https://docs.google.com/spreadsheets/d/…"></label>
+      <label>…or a CSV file<input type="file" name="file" accept=".csv,text/csv"></label>
+      <label>These leads are in (City, Country), optional<input name="area" placeholder="Surat, India"></label>
+    </div>
+    <label class="check" style="margin-top:8px"><input type="checkbox" name="priority" value="1"> High-value leads (contacted first, more channels)</label>
+    <label class="check"><input type="checkbox" name="keep_synced" value="1" checked> Keep the Google Sheet synced (new rows imported every few hours)</label>
+    <div style="margin-top:10px"><button class="primary">Import</button></div>
+  </form>
+  {% if cfg.data.sources.google_sheets %}<p class="small muted">Synced sheets: {% for s in cfg.data.sources.google_sheets %}{{ (s.url if s.url is defined else s)|short(60) }}{{ ', ' if not loop.last }}{% endfor %}</p>{% endif %}
 </div>
-</div>
-<h2>Do-not-contact list</h2>
-<form method="post" action="{{ url_for('add_suppression') }}" class="row" style="max-width:520px">
-  <input type="hidden" name="_csrf" value="{{ csrf }}"><input name="value" placeholder="email@company.com or @company.com"><button>Add</button></form>
+
+{% elif tab == 'dnc' %}
+<form method="post" action="{{ url_for('add_suppression') }}" class="row" style="max-width:560px">
+  <input type="hidden" name="_csrf" value="{{ csrf }}"><input name="value" placeholder="email@company.com, @company.com or a phone number"><button>Never contact</button></form>
 <table style="margin-top:10px">{% for s in suppression %}<tr><td class="small">{{ s.value if not s.value.startswith('sha256:') else '(erased person)' }}</td><td class="small muted">{{ s.reason }}</td><td class="small muted">{{ s.created_at|ago }}</td></tr>{% else %}<tr><td class="muted">Empty.</td></tr>{% endfor %}</table>
+{% endif %}
 {% endblock %}

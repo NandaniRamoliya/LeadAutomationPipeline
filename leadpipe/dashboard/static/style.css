@@ -63,3 +63,34 @@ pre.body { white-space: pre-wrap; font-family: inherit; margin: 6px 0 0; }
 .funnel td.n { width: 70px; text-align: right; font-weight: 600; }
 details summary { cursor: pointer; color: var(--accent); }
 @media (max-width: 640px) { .status { margin-left: 0; } th, td { padding: 6px; } }
+
+/* ---- v1.1 additions ---- */
+.hero { display: flex; gap: 16px; align-items: center; justify-content: space-between; flex-wrap: wrap; padding: 18px 20px; }
+.hero h1 { margin: 0; }
+.big { font-size: 18px; }
+.btn.primary, a.btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+a.btn { display: inline-block; }
+.cta { font-size: 17px; padding: 12px 18px; border-radius: 10px; }
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0 14px; }
+.tabs a { padding: 6px 12px; border-radius: 20px; border: 1px solid var(--line); color: var(--muted); background: var(--panel); }
+.tabs a.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+.task { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); margin-bottom: 12px; padding: 12px 14px; }
+.task .head { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
+.task .their { background: var(--code); border-radius: 8px; padding: 8px 10px; margin: 6px 0 10px; font-size: 14px; white-space: pre-wrap; }
+.help { color: var(--muted); font-size: 13px; margin: -4px 0 10px; }
+.chanbar { display: flex; gap: 6px; flex-wrap: wrap; }
+.chanbar a, .chanbar span { font-size: 13px; padding: 4px 10px; border-radius: 16px; border: 1px solid var(--line); background: var(--panel); }
+.steps { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; font-size: 13px; }
+.steps span { padding: 3px 10px; border-radius: 14px; background: var(--code); }
+.steps span.on { background: var(--accent); color: #fff; }
+.formgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px 16px; }
+.formgrid label { font-size: 13px; color: var(--muted); display: block; }
+.formgrid label input, .formgrid label textarea, .formgrid label select { margin-top: 3px; }
+fieldset { border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px 16px; margin: 0 0 14px; background: var(--panel); }
+legend { font-weight: 700; padding: 0 6px; }
+.check { display: inline-flex; gap: 6px; align-items: center; margin-right: 14px; font-size: 14px; color: var(--text) !important; }
+.check input { width: auto; }
+pre.script { white-space: pre-wrap; font-family: inherit; font-size: 14px; background: var(--code); padding: 10px; border-radius: 8px; margin: 6px 0; }
+.kpi .n { font-size: 30px; font-weight: 700; }
+.dim { opacity: .65; }
+.formgrid textarea, fieldset textarea { font-family: inherit; font-size: 14px; }

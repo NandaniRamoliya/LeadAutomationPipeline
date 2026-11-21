@@ -1,6 +1,10 @@
 @echo off
-REM Starts the pipeline (engine + dashboard). Double-click, or run it from Task Scheduler
-REM "At log on" / "At startup" so it keeps running. Keep the PC awake (Power settings: Sleep = Never).
+REM Easiest way to run 24/7 on Windows: open a terminal in this folder and run ONCE:
+REM     .venv\Scripts\activate
+REM     leadpipe service install
+REM It then starts with your PC, runs hidden in the background, and restarts itself if it stops.
+REM
+REM This file is the manual alternative: double-click to run in a window (closing the window stops it).
 cd /d "%~dp0\.."
 call .venv\Scripts\activate.bat
 :loop

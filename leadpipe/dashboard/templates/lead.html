@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}{{ co.name }} · Lead Pipeline{% endblock %}
+{% block content %}
+<div class="row" style="justify-content:space-between">
+  <h1>{{ co.name }} <span class="pill {{ STAGE_PILL.get(ct.stage, '') }}">{{ PLAIN_STAGE.get(ct.stage, ct.stage) }}</span>
+    {% if co.priority %}<span class="pill acc">high-value</span>{% endif %}</h1>
+  <a href="{{ url_for('leads') }}">← all leads</a>
+</div>
+<p class="muted">{{ ct.full_name or 'Owner / team' }}{% if ct.role %} · {{ ct.role }}{% endif %} · {{ (co.category or '')|replace('_',' ') }} · {{ co.city or '' }}{% if area and area.name.split(',')[0]|trim != (co.city or '') %} ({{ area.name }}){% endif %}</p>
+
+<div class="card">
+  <div class="row" style="justify-content:space-between">
+    <div><b>Next:</b> {{ next_text }}{% if ct.lost_reason and ct.stage in ('lost','paused','unsubscribed','bounced') %} · <span class="muted">{{ ct.lost_reason }}</span>{% endif %}</div>
+    <div class="chanbar">
+      {% for ch, url in links.items() %}<a href="{{ url }}" target="_blank" rel="noopener" title="{{ LABELS[ch] }}">{{ ICONS[ch] }} {{ LABELS[ch] }}</a>{% else %}<span class="muted">no way to reach them found</span>{% endfor %}
+      {% if co.website %}<a href="{{ co.website }}" target="_blank" rel="noopener">🌐 Website</a>{% endif %}
+      {% if co.maps_url %}<a href="{{ co.maps_url }}" target="_blank" rel="noopener">📍 Map</a>{% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="grid2">
+<div>
+  <div class="card" style="margin-top:12px">
+    <h3>Why they're a good lead</h3>
+    <ul class="small">{% for k, v in jloads(co.signals, {}).items() if k in SIGNALS %}<li><b>{{ SIGNALS[k].label }}</b> <span class="muted">({{ v|evidence }})</span></li>{% else %}<li class="muted">No problems found yet.</li>{% endfor %}</ul>
+    {% if jloads(co.problems, []) %}<div class="small"><b>In plain words:</b> {{ jloads(co.problems, [])|join('; ') }}</div>{% endif %}
+    <div class="small muted" style="margin-top:6px">Score {{ co.score }}{% if co.rating %} · Google {{ co.rating }}★ ({{ co.reviews or 0 }} reviews){% endif %}{% if co.tech %} · built with {{ co.tech }}{% endif %}
+      {% if ct.email %} · email {{ ct.email }} ({{ ct.email_status }}){% endif %}</div>
+    {% if colleagues %}<div class="small" style="margin-top:6px">Also at this business: {% for c in colleagues %}<a href="{{ url_for('lead', cid=c.id) }}">{{ c.full_name or c.email or 'contact' }}</a> ({{ PLAIN_STAGE.get(c.stage, c.stage) }}){{ ', ' if not loop.last }}{% endfor %}</div>{% endif %}
+  </div>
+
+  {% if deal %}
+  {% set cl = jloads(deal.checklist, {}) %}
+  <div class="card" style="margin-top:12px">
+    <h3>Client onboarding</h3>
+    {% for key, label, who in CHECKLIST %}
+    <form method="post" action="{{ url_for('lead_action', cid=ct.id, action='onboard') }}" class="row" style="margin:4px 0">
+      <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="key" value="{{ key }}">
+      <input type="hidden" name="done" value="{{ '0' if key in cl else '1' }}">
+      <span>{{ '✅' if key in cl else '⬜' }}</span><span style="flex:1">{{ label }} <span class="muted small">({{ 'automatic' if who == 'auto' else 'you tick it' }})</span></span>
+      {% if who == 'you' or key in cl %}<button class="small">{{ 'Undo' if key in cl else 'Mark done' }}</button>{% endif %}
+    </form>{% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="card" style="margin-top:12px">
+    <h3>They answered by WhatsApp / phone / DM?</h3>
+    <form method="post" action="{{ url_for('lead_action', cid=ct.id, action='log-reply') }}">
+      <input type="hidden" name="_csrf" value="{{ csrf }}">
+      <textarea name="text" style="min-height:60px" placeholder="Paste or type what they said"></textarea>
+      <div class="row" style="margin-top:6px">
+        <select name="channel" style="max-width:150px">{% for c in ['whatsapp','call','instagram','linkedin','twitter','facebook','email'] %}<option value="{{ c }}">{{ LABELS[c] }}</option>{% endfor %}</select>
+        <select name="intent" style="max-width:240px"><option value="">Understand it automatically</option>
+          {% for k, v in INTENTS.items() if k not in ('bounce','auto_reply') %}<option value="{{ k }}">{{ v }}</option>{% endfor %}</select>
+        <button>Log it</button></div>
+    </form>
+  </div>
+
+  <details class="card" style="margin-top:12px"><summary><b>More actions</b>: mark as won, move, write a message, notes</summary>
+    {% if ct.stage not in ('won','client') %}
+    <form method="post" action="{{ url_for('lead_action', cid=ct.id, action='won') }}" class="row" style="margin-top:10px">
+      <input type="hidden" name="_csrf" value="{{ csrf }}">
+      <input name="value" placeholder="deal value (optional)" style="max-width:170px"><input name="currency" placeholder="INR" style="max-width:80px">
+      <button class="primary">🎉 They said YES: start onboarding</button></form>{% endif %}
+    <form method="post" action="{{ url_for('lead_action', cid=ct.id, action='stage') }}" class="row" style="margin-top:10px">
+      <input type="hidden" name="_csrf" value="{{ csrf }}">
+      <select name="stage" style="max-width:240px">{% for s in STAGES %}<option value="{{ s }}" {{ 'selected' if s==ct.stage }}>{{ PLAIN_STAGE.get(s, s) }}</option>{% endfor %}</select>
+      <button>Move (starts that stage's follow-ups)</button></form>
+    <form method="post" action="{{ url_for('lead_action', cid=ct.id, action='compose') }}" style="margin-top:10px">
+      <input type="hidden" name="_csrf" value="{{ csrf }}">
+      <div class="row"><select name="channel" style="max-width:160px">{% for c in links %}<option value="{{ c }}">{{ LABELS[c] }}</option>{% endfor %}</select>
+        <input name="subject" placeholder="Subject (email only; 'Re: …' keeps the thread)"></div>
+      <textarea name="body" style="min-height:80px;margin-top:6px" placeholder="Your message"></textarea>
+      <button style="margin-top:6px">Add to To-do</button></form>
+    <form method="post" action="{{ url_for('lead_action', cid=ct.id, action='note') }}" class="row" style="margin-top:10px">
+      <input type="hidden" name="_csrf" value="{{ csrf }}"><input name="note" placeholder="Private note"><button>Add note</button></form>
+    {% if ct.notes %}<pre class="body small muted">{{ ct.notes }}</pre>{% endif %}
+    <div class="row" style="margin-top:10px">
+      <form method="post" action="{{ url_for('lead_action', cid=ct.id, action='priority') }}"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="small">{{ 'Remove high-value flag' if co.priority else 'Mark as high-value' }}</button></form>
+      <form method="post" action="{{ url_for('lead_action', cid=ct.id, action='suppress') }}" onsubmit="return confirm('Never contact this business again?')"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="danger small">Never contact again</button></form>
+    </div>
+  </details>
+</div>
+
+<div>
+  <h2 style="margin-top:12px">Conversation</h2>
+  <div class="timeline">
+  {% for m in msgs %}
+    <div class="item {{ m.direction }}">
+      <div class="small"><b>{{ 'They' if m.direction=='in' else 'You' }}</b> · {{ ICONS.get(m.channel, '✉️') }} {{ LABELS.get(m.channel, m.channel) }}
+        {% if m.direction=='in' %}<span class="pill ok">{{ INTENTS.get(m.intent, m.intent) }}</span>
+        {% else %}<span class="pill {{ 'ok' if m.status=='sent' else ('bad' if m.status=='failed' else 'warn') }}">{{ {'sent':'sent','pending':'waiting for you','approved':'scheduled','failed':'failed'}.get(m.status, m.status) }}</span>
+          {% if m.outcome %}<span class="pill">{{ m.outcome|replace('_',' ') }}</span>{% endif %}{% endif %}
+        <span class="muted">{{ (m.sent_at or m.received_at or m.created_at)|ago }}</span></div>
+      {% if m.subject and m.channel == 'email' %}<div><b>{{ m.subject }}</b></div>{% endif %}
+      <pre class="body small">{{ m.body|short(1500) if m.direction=='in' else m.body }}</pre>
+      {% if m.error and m.status == 'failed' %}<div class="small muted">{{ m.error }}</div>{% endif %}
+    </div>
+  {% else %}<p class="muted">Nothing sent yet. The first message is written when this lead's turn comes.</p>{% endfor %}
+  </div>
+  <h2>History</h2>
+  <table>{% for e in events %}<tr><td class="small muted" style="white-space:nowrap">{{ e.ts|ago }}</td><td class="small">{{ e.message }}</td></tr>{% endfor %}</table>
+</div>
+</div>
+{% endblock %}

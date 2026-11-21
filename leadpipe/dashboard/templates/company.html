@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 {% block content %}
 <h1>{{ co.name }}</h1>
-<p class="muted">{{ co.category }} · {{ co.city }} · {% if co.website %}<a href="{{ co.website }}" target="_blank" rel="noopener">{{ co.website }}</a>{% endif %} · score {{ co.score }} · {{ co.status }} ({{ co.status_reason }})</p>
-<h2>Contacts</h2>
-<table>{% for c in contacts %}<tr><td><a href="{{ url_for('contact', cid=c.id) }}">{{ c.full_name or c.email or 'manual contact' }}</a></td><td>{{ c.email or '' }}</td><td><span class="pill acc">{{ c.stage }}</span></td></tr>{% else %}<tr><td class="muted">No contacts found for this company.</td></tr>{% endfor %}</table>
-<h2>Signals</h2>
-<ul>{% for k, v in jloads(co.signals, {}).items() %}<li><b>{{ SIGNALS[k].label if k in SIGNALS else k }}</b>: <span class="muted">{{ v|evidence }}</span></li>{% endfor %}</ul>
+<p class="muted">{{ (co.category or '')|replace('_',' ') }} · {{ co.city or '' }}{% if co.website %} · <a href="{{ co.website }}" target="_blank" rel="noopener">{{ co.website }}</a>{% endif %}
+ · score {{ co.score }} · {{ co.status }}{% if co.status_reason %} ({{ co.status_reason }}){% endif %}</p>
+<div class="card"><h3>Problems found</h3>
+<ul>{% for k, v in jloads(co.signals, {}).items() %}<li><b>{{ SIGNALS[k].label if k in SIGNALS else k }}</b>: <span class="muted">{{ v|evidence }}</span></li>{% else %}<li class="muted">Not researched yet.</li>{% endfor %}</ul>
+<p class="small muted">No contact person or channel was found for this business, so it isn't being contacted.</p></div>
 {% endblock %}

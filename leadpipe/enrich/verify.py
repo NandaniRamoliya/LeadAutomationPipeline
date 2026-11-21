@@ -3,7 +3,8 @@
 Statuses:
   valid    deliverable domain, found on their site / listing / your import
   risky    role inbox (info@, contact@) or catch-all. Usually fine for small local businesses
-  guess    pattern-generated (firstname@domain). Only sent if enrichment.allow_guessed_emails
+  pattern  built from the company's own published email format. Sent if enrichment.allow_pattern_emails
+  guess    blind guess (firstname@domain). Only sent if enrichment.allow_guessed_emails
   invalid  bad syntax, disposable, or the domain can't receive mail. Never sent
 """
 from __future__ import annotations
@@ -69,7 +70,7 @@ def _smtp_probe(email: str, mx: str, helo_domain: str) -> str | None:
     return None
 
 
-def verify_email(email: str, cfg: Config, guessed: bool = False) -> Verification:
+def verify_email(email: str, cfg: Config, guessed: bool = False, pattern: bool = False) -> Verification:
     email = (email or "").strip().lower()
     if not EMAIL_RE.match(email):
         return Verification("invalid", "bad syntax")
@@ -104,11 +105,13 @@ def verify_email(email: str, cfg: Config, guessed: bool = False) -> Verification
             return Verification("invalid", "mailbox rejected by server")
         if probe == "ok":
             return Verification("valid", "mailbox confirmed by server")
-        if probe == "catch_all" and guessed:
+        if probe == "catch_all" and (guessed or pattern):
             return Verification("guess", "catch-all domain, guessed address")
 
+    if pattern:
+        return Verification("pattern", "built from the company's own email format, MX ok")
     if guessed:
-        return Verification("guess", "pattern guess, MX ok")
+        return Verification("guess", "blind guess, MX ok")
     if local in ROLE_PREFIXES:
         return Verification("risky", "role inbox (info@/contact@)")
     return Verification("valid", "MX ok")
@@ -119,6 +122,8 @@ def is_sendable(status: str | None, cfg: Config) -> bool:
         return True
     if status == "risky":
         return bool(cfg.get("enrichment.allow_role_emails", True))
+    if status == "pattern":
+        return bool(cfg.get("enrichment.allow_pattern_emails", True))
     if status == "guess":
         return bool(cfg.get("enrichment.allow_guessed_emails", False))
     return False

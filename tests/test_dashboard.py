@@ -24,11 +24,12 @@ def test_pages_render(cfg, db):
     enroll_new_contacts(db, cfg)
     write_due(db, cfg)
     c = _client(cfg, db)
-    for path in ["/", "/outbox", "/replies", "/manual", "/leads", "/contacts", "/clients", "/analytics", "/settings",
-                 "/contact/1", "/company/1", "/health"]:
+    for path in ["/", "/todo", "/leads", "/leads?view=reaching", "/leads/researching", "/clients", "/insights",
+                 "/settings", "/settings?tab=reach", "/settings?tab=automation", "/settings?tab=import", "/settings?tab=dnc",
+                 "/lead/1", "/company/1", "/health"]:
         r = c.get(path, follow_redirects=True)
         assert r.status_code == 200, (path, r.status_code)
-    assert "Smile Dental Care" in c.get("/outbox").get_data(as_text=True)
+    assert "Smile Dental Care" in c.get("/todo").get_data(as_text=True)
 
 
 def test_approve_requires_csrf_and_works(cfg, db):
@@ -37,13 +38,13 @@ def test_approve_requires_csrf_and_works(cfg, db):
     write_due(db, cfg)
     c = _client(cfg, db)
     m = db.one("SELECT * FROM messages WHERE status='pending' LIMIT 1")
-    assert c.post(f"/outbox/{m['id']}/approve", data={"subject": m["subject"], "body": m["body"]}).status_code == 400
+    assert c.post(f"/todo/{m['id']}/send", data={"subject": m["subject"], "body": m["body"]}).status_code == 400
     token = _csrf(c)
-    r = c.post(f"/outbox/{m['id']}/approve", data={"_csrf": token, "subject": m["subject"], "body": m["body"]})
+    r = c.post(f"/todo/{m['id']}/send", data={"_csrf": token, "subject": m["subject"], "body": m["body"]})
     assert r.status_code == 302 and db.message(m["id"])["status"] == "approved"
     # Editing in a banned phrase blocks approval
     m2 = db.one("SELECT * FROM messages WHERE status='pending' LIMIT 1")
-    c.post(f"/outbox/{m2['id']}/approve", data={"_csrf": token, "subject": m2["subject"],
+    c.post(f"/todo/{m2['id']}/send", data={"_csrf": token, "subject": m2["subject"],
                                                  "body": "Dear Sir/Madam, I hope this email finds you well."})
     assert db.message(m2["id"])["status"] == "pending"
 

@@ -146,7 +146,35 @@ CREATE TABLE IF NOT EXISTS kv (
     key   TEXT PRIMARY KEY,
     value TEXT
 );
+
+CREATE TABLE IF NOT EXISTS areas (
+    id          INTEGER PRIMARY KEY,
+    name        TEXT UNIQUE,
+    country     TEXT,
+    timezone    TEXT,
+    lat         REAL,
+    lon         REAL,
+    bbox        TEXT,
+    position    INTEGER DEFAULT 0,
+    status      TEXT DEFAULT 'pending',   -- pending | active | done | skipped | failed
+    tile        INTEGER DEFAULT 0,
+    tiles       INTEGER DEFAULT 0,
+    found       INTEGER DEFAULT 0,
+    note        TEXT,
+    last_run_at TEXT,
+    created_at  TEXT,
+    updated_at  TEXT
+);
 """
+
+# Columns added after 1.0. Applied to new and existing databases alike (ALTER TABLE ... ADD COLUMN).
+MIGRATIONS: dict[str, list[tuple[str, str]]] = {
+    "companies": [("linkedin", "TEXT"), ("twitter", "TEXT"), ("whatsapp", "TEXT"), ("priority", "INTEGER DEFAULT 0"),
+                  ("rating", "REAL"), ("reviews", "INTEGER"), ("lat", "REAL"), ("lon", "REAL"),
+                  ("area_id", "INTEGER"), ("tech", "TEXT"), ("tags", "TEXT"), ("maps_url", "TEXT")],
+    "contacts": [("phone", "TEXT"), ("linkedin", "TEXT"), ("mailbox", "TEXT"), ("call_attempts", "INTEGER DEFAULT 0")],
+    "messages": [("mailbox", "TEXT"), ("outcome", "TEXT"), ("action_url", "TEXT")],
+}
 
 
 def utcnow() -> datetime:
@@ -186,6 +214,11 @@ class DB:
             self.conn.execute("PRAGMA journal_mode=WAL")
             self.conn.execute("PRAGMA foreign_keys=ON")
             self.conn.executescript(SCHEMA)
+            for table, cols in MIGRATIONS.items():
+                have = {r[1] for r in self.conn.execute(f"PRAGMA table_info({table})").fetchall()}
+                for col, decl in cols:
+                    if col not in have:
+                        self.conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} {decl}")
             self.conn.commit()
 
     # ---- low level -----------------------------------------------------
@@ -211,7 +244,7 @@ class DB:
 
     def insert(self, table: str, values: dict) -> int:
         values = dict(values)
-        if table not in ("events", "kv", "suppression"):
+        if table not in ("events", "kv", "suppression", "seen_inbound"):
             values.setdefault("created_at", now_iso())
             values.setdefault("updated_at", values["created_at"])
         cols = ", ".join(values)

@@ -66,8 +66,26 @@ class LLM:
         return self.provider != "none"
 
     # ------------------------------------------------------------------
+    # ---- daily budget ---------------------------------------------------------
+    def attach_db(self, db) -> "LLM":
+        self._db = db
+        return self
+
+    def _budget_ok(self) -> bool:
+        db = getattr(self, "_db", None)
+        if db is None:
+            return True
+        from datetime import date
+        key = f"llm_calls:{date.today().isoformat()}"
+        used = int(db.kv_get(key, 0) or 0)
+        if used >= int(self.cfg.get("llm.max_calls_per_day", 400)):
+            self.last_error = "daily AI budget used up (llm.max_calls_per_day); using templates until tomorrow"
+            return False
+        db.kv_set(key, used + 1)
+        return True
+
     def json(self, system: str, prompt: str, schema: dict, effort: str = "medium") -> dict | None:
-        if not self.available:
+        if not self.available or not self._budget_ok():
             return None
         try:
             if self.provider == "anthropic":
@@ -114,11 +132,39 @@ class LLM:
         return _extract_json(text)
 
     # ---- Claude Code CLI (uses your Claude plan) -------------------------
+    _cli_flags: list[str] | None = None
+
+    def _cli_isolation_flags(self, exe: str) -> list[str]:
+        """Run the CLI with none of your own Claude Code setup (no tools, hooks, MCP, settings, saved sessions),
+        using only the flags your installed version supports."""
+        if LLM._cli_flags is not None:
+            return LLM._cli_flags
+        try:
+            helptext = subprocess.run([exe, "--help"], capture_output=True, text=True, timeout=30).stdout
+        except Exception:
+            helptext = ""
+        flags: list[str] = []
+        for flag, extra in (("--safe-mode", []), ("--tools", [""]), ("--setting-sources", [""]),
+                            ("--strict-mcp-config", []), ("--no-session-persistence", []), ("--disable-slash-commands", [])):
+            if flag in helptext:
+                flags += [flag, *extra]
+        LLM._cli_flags = flags
+        return flags
+
     def _cli(self, system: str, prompt: str, schema: dict) -> dict | None:
+        import tempfile
+        exe = shutil.which("claude")
+        if not exe:
+            self.last_error = "claude CLI not found"
+            return None
         full = (f"{system}\n\n{prompt}\n\nRespond with ONLY a JSON object matching this JSON schema, "
                 f"no other text:\n{json.dumps(schema)}")
-        proc = subprocess.run(["claude", "-p", full, "--output-format", "text"], capture_output=True,
-                              text=True, timeout=self.timeout)
+        cmd = [exe, "-p", "--output-format", "text", *self._cli_isolation_flags(exe)]
+        model = str(self.cfg.get("llm.cli_model") or "")
+        if model:
+            cmd += ["--model", model]
+        with tempfile.TemporaryDirectory(prefix="leadpipe-ai-") as tmp:
+            proc = subprocess.run(cmd, input=full, capture_output=True, text=True, timeout=self.timeout, cwd=tmp)
         if proc.returncode != 0:
             self.last_error = (proc.stderr or proc.stdout)[:300]
             return None

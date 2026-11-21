@@ -66,16 +66,15 @@ def cmd_init(args) -> None:
             proof = input("One real result you can show (e.g. 'built sites for 5 cafes'), or blank: ").strip()
             if proof:
                 text = text.replace('    - "built booking websites for 12 local clinics"', "    - " + json.dumps(proof, ensure_ascii=False), 1)
-            area = input("Area to find leads in (e.g. 'Pune, India'): ").strip()
-            cats = input("Business types, comma separated (e.g. dentist, cafe): ").strip()
-            tzname = input("Their timezone (e.g. Asia/Kolkata, Europe/London, America/New_York): ").strip()
+            area = input("Where to start, 'City, Country' (e.g. 'Surat, India'): ").strip()
+            cats = input("Business types, comma separated (e.g. dentist, cafe, gym): ").strip()
+            tzname = input("Your timezone (e.g. Asia/Kolkata, Europe/London, America/New_York): ").strip()
             if area:
-                text = _set_line(text, "area", json.dumps(area, ensure_ascii=False))
-                text = _set_line(text, "- name", json.dumps(area.split(",")[0].strip().lower().replace(" ", "-") + "-leads"))
+                text = _set_line(text, "start_area", json.dumps(area, ensure_ascii=False))
             if cats:
-                text = _set_line(text, "categories", json.dumps([c.strip() for c in cats.split(",") if c.strip()]))
+                text = _set_line(text, "business_types", json.dumps([c.strip() for c in cats.split(",") if c.strip()]))
             if tzname:
-                text = _set_line(text, "timezone", json.dumps(tzname), count=2)
+                text = _set_line(text, "timezone", json.dumps(tzname))
         target.write_text(text, encoding="utf-8")
         print(f"Created {target}")
     if not env_path.exists():
@@ -112,14 +111,41 @@ def cmd_categories(args) -> None:
 def cmd_discover(args) -> None:
     from .discovery import run_discovery
     cfg, db = _ctx(args)
-    n = run_discovery(db, cfg, target_name=args.target, limit=args.limit, force=True)
-    print(f"{n} new businesses added. Next: `leadpipe enrich`.")
+    n = run_discovery(db, cfg, area_name=args.area, force=True, steps=args.steps)
+    print(f"{n} new businesses added. Next: `leadpipe enrich` (the engine does this by itself).")
+
+
+def cmd_areas(args) -> None:
+    from .discovery import add_area, current_area, seed_areas
+    cfg, db = _ctx(args)
+    seed_areas(db, cfg)
+    if args.action == "add":
+        add_area(db, args.name, first=True)
+        db.execute("UPDATE areas SET status='pending' WHERE status='active' AND lower(name) != lower(?)", (args.name,))
+        print(f"'{args.name}' will be searched next.")
+        return
+    if args.action == "skip":
+        row = db.one("SELECT id FROM areas WHERE lower(name) = lower(?)", (args.name,))
+        if row:
+            db.update("areas", row["id"], {"status": "skipped", "note": "skipped by you"})
+            print("Skipped.")
+        return
+    current_area(db)
+    rows = db.all("SELECT name, status, tile, tiles, found FROM areas ORDER BY CASE status WHEN 'active' THEN 0 "
+                  "WHEN 'pending' THEN 1 ELSE 2 END, position LIMIT ?", (args.limit,))
+    for r in rows:
+        r["progress"] = f"{r['tile']}/{r['tiles'] or '?'}"
+    _print_table(rows, ["name", "status", "progress", "found"])
 
 
 def cmd_import(args) -> None:
     from .discovery.csv_import import import_csv
     cfg, db = _ctx(args)
-    print(json.dumps(import_csv(db, cfg, args.file, target=args.target), indent=2))
+    st = import_csv(db, cfg, args.file, area=args.area, priority=args.priority,
+                    source="sheet" if "docs.google.com" in args.file else "csv")
+    print(f"{st['rows']} rows: {st['companies']} new businesses, {st['contacts']} contacts with email, "
+          f"{st['updated']} already known, {st['skipped']} skipped.")
+    print("Columns used: " + ", ".join(f"{k}←'{v}'" for k, v in st["columns"].items()))
 
 
 def cmd_enrich(args) -> None:
@@ -259,19 +285,71 @@ def cmd_dashboard(args) -> None:
 
 
 def cmd_start(args) -> None:
-    """Engine (background thread) + dashboard in one process. What Docker / systemd run."""
+    """Engine (background thread) + dashboard in one process. What the background service, Docker and systemd run."""
     import threading
     from .dashboard.app import create_app, serve
-    from .engine import Engine
+    from .engine import Engine, _acquire_lock, engine_running_elsewhere
+    from .service import setup_file_logging
+    if not Path(args.config or "config.yaml").exists() and not args.config:
+        cmd_init(argparse.Namespace(config=None, force=False, yes=True))
     cfg, db = _ctx(args)
+    logfile = setup_file_logging(cfg, args.verbose)
+    lock_path = cfg.data_dir / "engine.lock"
+    other = engine_running_elsewhere(lock_path)
+    if other:
+        msg = f"Already running in the background (pid {other}). Dashboard: http://localhost:{args.port or cfg.get('dashboard.port', 8787)}"
+        if args.background:
+            logging.getLogger("leadpipe").info(msg)
+        else:
+            print(msg)
+        return
+    lock = _acquire_lock(lock_path)
     eng = Engine(db, cfg)
-    t = threading.Thread(target=eng.run_forever, name="engine", daemon=True)
+    t = threading.Thread(target=eng.run_forever, kwargs={"lock": lock}, name="engine", daemon=True)
     t.start()
+    if not args.background:
+        print(f"Running 24/7. Logs: {logfile}. Press Ctrl+C to stop.")
+        print("To keep it running in the background after you close this window: leadpipe service install")
     try:
-        serve(create_app(cfg, db), cfg, args.host, args.port)
+        serve(create_app(cfg, db, engine=eng), cfg, args.host, args.port, quiet=args.background)
+    except (OSError, SystemExit) as exc:
+        logging.getLogger("leadpipe").warning("dashboard not started (%s); engine keeps running", exc)
+        while t.is_alive():
+            t.join(timeout=60)
     finally:
         eng.stop_event.set()
         t.join(timeout=10)
+
+
+def cmd_service(args) -> None:
+    from . import service
+    cfg, db = _ctx(args)
+    if not cfg.path:
+        sys.exit("Create your settings first: leadpipe init (or open the dashboard → Settings).")
+    act = args.action
+    if act == "install":
+        print(service.install(cfg))
+    elif act == "uninstall":
+        print(service.uninstall(cfg))
+    elif act == "stop":
+        print(service.stop(cfg))
+    elif act == "start":
+        print(service.start(cfg))
+    elif act == "logs":
+        print(service.tail_log(cfg, args.lines))
+    else:
+        st = service.status(cfg)
+        print(f"Installed as background service: {'yes' if st['installed'] else 'no'}")
+        print(f"Engine running: {'yes (pid ' + str(st['pid']) + ')' if st['running'] else 'no'}")
+        print(f"Log file: {st['log']}")
+
+
+def cmd_open(args) -> None:
+    import webbrowser
+    cfg = load_config(args.config)
+    url = f"http://localhost:{cfg.get('dashboard.port', 8787)}"
+    webbrowser.open(url)
+    print(url)
 
 
 def cmd_sending(args) -> None:
@@ -330,6 +408,17 @@ def cmd_stats(args) -> None:
 
 def cmd_export(args) -> None:
     cfg, db = _ctx(args)
+    if args.calls:
+        from .tasks import export_call_list
+        rows = export_call_list(db, cfg)
+        out = open(args.file, "w", newline="", encoding="utf-8") if args.file else sys.stdout
+        w = csv.DictWriter(out, fieldnames=["company", "phone", "city", "score", "script", "task_id"])
+        w.writeheader()
+        w.writerows(rows)
+        if args.file:
+            out.close()
+            print(f"Wrote {len(rows)} calls to {args.file}")
+        return
     rows = db.all("""SELECT co.name company, co.category, co.website, co.phone, co.city, co.score, co.status company_status,
                      ct.full_name, ct.role, ct.email, ct.email_status, ct.stage, co.problems
                      FROM contacts ct JOIN companies co ON co.id = ct.company_id
@@ -405,13 +494,19 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("signals", help="explain buying signals and your weights").set_defaults(fn=cmd_signals)
     sub.add_parser("categories", help="list business categories for targets").set_defaults(fn=cmd_categories)
 
-    s = sub.add_parser("discover", help="find businesses for your targets now")
-    s.add_argument("--target")
-    s.add_argument("--limit", type=int)
+    s = sub.add_parser("discover", help="find businesses in the current area now (or --area 'City, Country')")
+    s.add_argument("--area")
+    s.add_argument("--steps", type=int, default=1, help="how many pieces of the map to search")
     s.set_defaults(fn=cmd_discover)
-    s = sub.add_parser("import", help="import leads from a CSV (Apollo, Sales Navigator, Sheets...)")
-    s.add_argument("file")
-    s.add_argument("--target", help="target name (for timezone/country)")
+    s = sub.add_parser("areas", help="the world rollout: list | add 'City, Country' | skip 'City, Country'")
+    s.add_argument("action", nargs="?", choices=["list", "add", "skip"], default="list")
+    s.add_argument("name", nargs="?")
+    s.add_argument("--limit", type=int, default=40)
+    s.set_defaults(fn=cmd_areas)
+    s = sub.add_parser("import", help="import leads from a CSV file or a Google Sheet link")
+    s.add_argument("file", help="path to .csv, or a Google Sheets link shared as 'Anyone with the link'")
+    s.add_argument("--area", help="'City, Country' these leads are in (timezone/country)")
+    s.add_argument("--priority", action="store_true", help="mark every row as high-value")
     s.set_defaults(fn=cmd_import)
     s = sub.add_parser("enrich", help="audit websites, find + verify emails, score leads")
     s.add_argument("--limit", type=int)
@@ -448,10 +543,16 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--host")
     s.add_argument("--port", type=int)
     s.set_defaults(fn=cmd_dashboard)
-    s = sub.add_parser("start", help="engine + dashboard together (use this for 24/7 servers)")
+    s = sub.add_parser("start", help="engine + dashboard together (24/7)")
     s.add_argument("--host")
     s.add_argument("--port", type=int)
+    s.add_argument("--background", action="store_true", help=argparse.SUPPRESS)
     s.set_defaults(fn=cmd_start)
+    s = sub.add_parser("service", help="run 24/7 in the background: install | status | stop | start | uninstall | logs")
+    s.add_argument("action", nargs="?", default="status", choices=["install", "status", "stop", "start", "uninstall", "logs"])
+    s.add_argument("--lines", type=int, default=40)
+    s.set_defaults(fn=cmd_service)
+    sub.add_parser("open", help="open the dashboard in your browser").set_defaults(fn=cmd_open)
 
     s = sub.add_parser("sending", help="pause / resume all sending immediately")
     s.add_argument("state", choices=["pause", "resume"])
@@ -476,8 +577,9 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--undo", action="store_true")
     s.set_defaults(fn=cmd_onboard)
     sub.add_parser("stats", help="numbers: reply rate, bounces, meetings, per step").set_defaults(fn=cmd_stats)
-    s = sub.add_parser("export", help="export contacts to CSV")
+    s = sub.add_parser("export", help="export contacts (or --calls: today's call list) to CSV")
     s.add_argument("--stage")
+    s.add_argument("--calls", action="store_true")
     s.add_argument("--file")
     s.set_defaults(fn=cmd_export)
     s = sub.add_parser("suppress", help="never email this address or @domain")
@@ -490,6 +592,11 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> None:
+    import os
+    if sys.stdout is None or sys.stderr is None:  # started without a console (pythonw / background service)
+        devnull = open(os.devnull, "w", encoding="utf-8")
+        sys.stdout = sys.stdout or devnull
+        sys.stderr = sys.stderr or devnull
     args = build_parser().parse_args(argv)
     _setup_logging(args.verbose)
     args.fn(args)

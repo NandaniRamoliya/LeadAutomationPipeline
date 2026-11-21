@@ -74,34 +74,42 @@ def _tag_filter(tag: str) -> str:
 
 
 def locate_area(area: str) -> dict | None:
-    resp = requests.get(NOMINATIM, params={"q": area, "format": "json", "limit": 1}, timeout=30,
+    """Nominatim lookup -> {lat, lon, bbox:(s,w,n,e), country}."""
+    resp = requests.get(NOMINATIM, params={"q": area, "format": "json", "limit": 1, "addressdetails": 1}, timeout=30,
                         headers={"User-Agent": USER_AGENT, "Accept-Language": "en"})
     resp.raise_for_status()
     data = resp.json()
-    return data[0] if data else None
+    if not data:
+        return None
+    d = data[0]
+    s_, n_, w_, e_ = (float(x) for x in d["boundingbox"])
+    # Nominatim returns a point (tiny box) for some cities: widen it to ~12 km around the centre.
+    lat, lon = float(d["lat"]), float(d["lon"])
+    if (n_ - s_) < 0.05 or (e_ - w_) < 0.05:
+        s_, n_, w_, e_ = lat - 0.11, lat + 0.11, lon - 0.13, lon + 0.13
+    # Very large boxes (whole states/countries) are clipped to ~60 km around the centre.
+    if (n_ - s_) > 1.2 or (e_ - w_) > 1.2:
+        s_, n_, w_, e_ = lat - 0.55, lat + 0.55, lon - 0.6, lon + 0.6
+    return {"lat": lat, "lon": lon, "bbox": (s_, w_, n_, e_),
+            "country": ((d.get("address") or {}).get("country_code") or "").upper(),
+            "display_name": d.get("display_name")}
 
 
-def build_query(area_info: dict, categories: list[str], limit: int) -> str:
+def build_bbox_query(bbox: tuple, categories: list[str], limit: int) -> str:
+    s_, w_, n_, e_ = bbox
+    scope = f"({s_:.5f},{w_:.5f},{n_:.5f},{e_:.5f})"
     selectors = []
-    if area_info.get("osm_type") == "relation":
-        area_id = 3600000000 + int(area_info["osm_id"])
-        scope = "(area.a)"
-        header = f"area({area_id})->.a;"
-    else:
-        s, n, w, e = (float(x) for x in area_info["boundingbox"])
-        scope = f"({s},{w},{n},{e})"
-        header = ""
     for cat in categories:
         for tag in tags_for(cat):
             selectors.append(f"nwr{_tag_filter(tag)}[\"name\"]{scope};")
-    return f"[out:json][timeout:90];{header}({''.join(selectors)});out center tags {int(limit)};"
+    return f"[out:json][timeout:90];({''.join(selectors)});out center tags {int(limit)};"
 
 
 def parse_elements(elements: list[dict], category_hint: str, area: str) -> list[dict]:
     out = []
     for el in elements:
         t = el.get("tags", {})
-        name = t.get("name") or t.get("name:en")
+        name = t.get("name:en") if t.get("name:en") and not t.get("name", "").isascii() else t.get("name")
         if not name:
             continue
         website = t.get("website") or t.get("contact:website") or t.get("url") or t.get("brand:website")
@@ -114,34 +122,35 @@ def parse_elements(elements: list[dict], category_hint: str, area: str) -> list[
                 facebook = facebook or website
         addr = ", ".join(x for x in [t.get("addr:housenumber"), t.get("addr:street"), t.get("addr:suburb"),
                                       t.get("addr:city"), t.get("addr:postcode")] if x)
-        category = (t.get("amenity") or t.get("shop") or t.get("healthcare") or t.get("office") or t.get("craft")
+        category = (t.get("healthcare") or t.get("amenity") or t.get("shop") or t.get("office") or t.get("craft")
                     or t.get("leisure") or t.get("tourism") or category_hint)
+        center = el.get("center") or {}
         out.append({
             "name": name.strip(),
             "category": category,
             "website": website,
-            "phone": t.get("phone") or t.get("contact:phone") or t.get("contact:mobile"),
+            "phone": t.get("phone") or t.get("contact:phone") or t.get("contact:mobile") or t.get("mobile"),
             "email": t.get("email") or t.get("contact:email"),
             "address": addr or None,
             "city": t.get("addr:city") or area.split(",")[0].strip(),
             "instagram": instagram,
             "facebook": facebook,
+            "linkedin": t.get("contact:linkedin"),
+            "twitter": t.get("contact:twitter"),
+            "whatsapp": t.get("contact:whatsapp"),
+            "lat": el.get("lat") or center.get("lat"),
+            "lon": el.get("lon") or center.get("lon"),
             "source": "osm",
             "source_ref": f"{el.get('type')}/{el.get('id')}",
         })
     return out
 
 
-def discover_osm(target: dict, limit: int) -> list[dict]:
-    area = target.get("area") or ""
-    cats = target.get("categories") or []
-    if not area or not cats:
+def search_tile(bbox: tuple, categories: list[str], limit: int, area_label: str) -> list[dict]:
+    """One Overpass request for every business type inside one tile of an area."""
+    if not categories:
         return []
-    info = locate_area(area)
-    if not info:
-        raise RuntimeError(f"OpenStreetMap could not find the area '{area}'. Try 'City, Country'.")
-    time.sleep(1.1)  # Nominatim policy: max 1 request/second
-    query = build_query(info, cats, limit)
+    query = build_bbox_query(bbox, categories, limit)
     errors: list[str] = []
     for server in OVERPASS_SERVERS:
         try:
@@ -151,7 +160,7 @@ def discover_osm(target: dict, limit: int) -> list[dict]:
                 time.sleep(10)
                 continue
             resp.raise_for_status()
-            return parse_elements(resp.json().get("elements", []), cats[0], area)
+            return parse_elements(resp.json().get("elements", []), categories[0], area_label)
         except (requests.RequestException, ValueError) as exc:
             errors.append(f"{server}: {type(exc).__name__}: {str(exc)[:160]}")
             continue

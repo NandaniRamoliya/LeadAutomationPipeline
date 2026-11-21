@@ -37,7 +37,7 @@ log = logging.getLogger("leadpipe.engine")
 class Engine:
     def __init__(self, db: DB, cfg: Config):
         self.db, self.cfg = db, cfg
-        self.llm = LLM(cfg)
+        self.llm = LLM(cfg).attach_db(db)
         self.writer = Writer(db, cfg, self.llm)
         self.mailer = Mailer(cfg)
         self.stop_event = threading.Event()
@@ -65,6 +65,11 @@ class Engine:
         db, cfg = self.db, self.cfg
         out: dict = {}
         db.kv_set("heartbeat", now_iso())
+        if cfg.reload_if_changed():
+            db.log("engine", "settings changed: reloaded")
+            e = cfg.section("engine")
+        if db.kv_get("engine_paused", False):
+            return {"paused": 1}
 
         if self._due("inbox", float(e.get("inbox_every_minutes", 5))):
             out["replies"] = self._run("inbox", process_inbox, db, cfg, self.writer, self.llm)
@@ -80,11 +85,15 @@ class Engine:
             out["drafted"] = self._run("write", write_due, db, cfg, self.writer)
             self._mark("write")
 
-        if self._due("enrich", float(e.get("enrich_every_minutes", 20))):
+        if self._due("enrich", float(e.get("enrich_every_minutes", 15))):
             out["enriched"] = self._run("enrich", enrich_pending, db, cfg, None, self.llm)
             self._mark("enrich")
-            if discovery_due(db, cfg):
-                out["discovered"] = self._run("discover", run_discovery, db, cfg)
+        if discovery_due(db, cfg):
+            out["discovered"] = self._run("discover", run_discovery, db, cfg)
+        if cfg.get("sources.google_sheets") and self._due("sheets", float(cfg.get("sources.sheet_sync_hours", 6)) * 60):
+            from .discovery.csv_import import sync_sheets
+            out["sheets"] = self._run("sheets", sync_sheets, db, cfg)
+            self._mark("sheets")
 
         self._daily_digest()
         return out
@@ -99,9 +108,12 @@ class Engine:
             notify(self.db, self.cfg, f"Daily summary {local.date().isoformat()}", text)
 
     # ---- forever -------------------------------------------------------------------
-    def run_forever(self) -> None:
-        lock = _acquire_lock(self.cfg.data_dir / "engine.lock")
+    def run_forever(self, lock: Path | None = None) -> None:
+        from .service import keep_awake
+        lock = lock or _acquire_lock(self.cfg.data_dir / "engine.lock")
         tick = float(self.cfg.get("engine.tick_seconds", 60))
+        if self.cfg.get("engine.keep_awake", True):
+            log.info(keep_awake(True))
         self.db.log("engine", f"engine started (mode={self.mailer.mode}, ai={self.llm.provider})")
         log.info("Engine running. Sending mode: %s. AI: %s. Press Ctrl+C to stop.", self.mailer.mode, self.llm.provider)
         try:
@@ -114,7 +126,12 @@ class Engine:
                 self.stop_event.wait(max(1.0, tick - (time.monotonic() - started)))
         finally:
             self.db.log("engine", "engine stopped")
-            lock.unlink(missing_ok=True)
+            keep_awake(False)
+            try:
+                if lock.read_text().strip() == str(os.getpid()):
+                    lock.unlink(missing_ok=True)
+            except OSError:
+                pass
 
     def install_signal_handlers(self) -> None:
         def _stop(*_):
@@ -127,22 +144,32 @@ class Engine:
                 pass
 
 
+def engine_running_elsewhere(path: Path) -> int | None:
+    """PID of another live engine using this database, if any."""
+    if not path.exists():
+        return None
+    try:
+        pid = int(path.read_text().strip() or 0)
+    except (ValueError, OSError):
+        return None
+    if not pid or pid == os.getpid():
+        return None
+    try:
+        if os.name == "nt":
+            import subprocess
+            out = subprocess.run(["tasklist", "/FI", f"PID eq {pid}"], capture_output=True, text=True).stdout
+            return pid if str(pid) in out else None
+        os.kill(pid, 0)
+        return pid
+    except (OSError, PermissionError):
+        return None
+
+
 def _acquire_lock(path: Path) -> Path:
     """Only one engine per database: two engines would double-send."""
-    if path.exists():
-        try:
-            pid = int(path.read_text().strip() or 0)
-        except ValueError:
-            pid = 0
-        alive = False
-        if pid and pid != os.getpid():
-            try:
-                os.kill(pid, 0)
-                alive = True
-            except (OSError, PermissionError):
-                alive = False
-        if alive:
-            raise SystemExit(f"Another engine is already running (pid {pid}). Stop it first, or delete {path}.")
+    pid = engine_running_elsewhere(path)
+    if pid:
+        raise SystemExit(f"Another engine is already running (pid {pid}). Stop it first, or delete {path}.")
     path.write_text(str(os.getpid()))
     return path
 
@@ -156,4 +183,5 @@ def engine_status(db: DB, cfg: Config) -> dict:
             "mode": cfg.get("sending.mode", "dry_run"),
             "autopilot_cold": bool(db.kv_get("autopilot_cold", cfg.get("approval.autopilot_cold", False))),
             "autopilot_replies": bool(db.kv_get("autopilot_replies", cfg.get("approval.autopilot_replies", False))),
+            "engine_paused": bool(db.kv_get("engine_paused", False)),
             "last_inbox_at": db.kv_get("last_inbox_at"), "last_discovery_at": db.kv_get("last_discovery_at")}

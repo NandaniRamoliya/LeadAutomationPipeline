@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Research · Lead Pipeline{% endblock %}
+{% block content %}
+<h1>Being researched, or not a fit</h1>
+<p class="muted">Every business found is checked first: its website, its problems, who decides, and how to reach them.
+Businesses with few problems your service fixes, or no way to reach them, are set aside here (with the reason).</p>
+<div class="table-wrap"><table>
+  <tr><th>Business</th><th>Status</th><th>Reason</th><th>Found</th></tr>
+  {% for c in rows %}
+  <tr><td><a href="{{ url_for('company', cid=c.id) }}">{{ c.name }}</a><div class="small muted">{{ c.category or '' }} · {{ c.city or '' }}</div></td>
+      <td><span class="pill {{ '' if c.status == 'new' else 'bad' }}">{{ 'researching' if c.status == 'new' else ('not a fit' if c.status == 'disqualified' else c.status) }}</span></td>
+      <td class="small">{{ c.status_reason or '' }}</td><td class="small muted">{{ c.created_at|ago }}</td></tr>
+  {% else %}<tr><td colspan="4" class="muted">Nothing here.</td></tr>{% endfor %}
+</table></div>
+{% endblock %}

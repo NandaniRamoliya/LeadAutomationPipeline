@@ -79,6 +79,17 @@ Stop the moment someone declines or asks not to be contacted. *Persistence is no
 
 **Speed matters:** answer hot replies within a few hours. The pipeline drafts the answer instantly and alerts you.
 
+## 6b. WhatsApp, DMs and cold calls
+
+- **DMs are shorter than emails:** 2–3 sentences, under 50 words, no links in the first one. Same formula: their
+  problem, what it costs, the free quick win as a yes/no question.
+- **WhatsApp:** business hours only, never voice notes or files first, never a second message the same day.
+  If they don't answer, the follow-up comes days later with *something new*.
+- **Cold call (2 minutes):** permission opener ("I'll be quick, do you have 30 seconds?") → the one problem you
+  noticed → two questions → offer the free quick win → book 15 minutes. Talk less than they do.
+- **Voicemail:** 20 seconds, name + one specific reason + "I'll send a short message". Then send it.
+- **One "no" is enough** on any channel. The pipeline stops everywhere when someone says no or stop.
+
 ## 7. The 15-minute call
 
 1. **Thank + agenda (1 min):** "I'll share what I found, ask a few questions, and if it makes sense, suggest next steps."

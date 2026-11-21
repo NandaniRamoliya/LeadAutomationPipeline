@@ -29,7 +29,7 @@ def fake_audit(url):
 
 
 def setup_leads(db, cfg):
-    stats = import_csv(db, cfg, text=CSV, target="pune-dentists")
+    stats = import_csv(db, cfg, text=CSV, area="Pune, India")
     assert stats["companies"] == 2 and stats["contacts"] == 3
     for co in db.all("SELECT * FROM companies"):
         enrich_company(db, cfg, co, audit=fake_audit(co["website"]))
@@ -159,13 +159,17 @@ def test_no_reply_closes_as_lost(cfg, db):
     enroll_new_contacts(db, cfg)
     amit = db.one("SELECT * FROM contacts WHERE email='amit@brightclinic.test'")
     purposes = []
-    for _ in range(5):
+    for _ in range(12):
         write_due(db, cfg)
         m = db.one("SELECT * FROM messages WHERE contact_id=? AND status='pending' ORDER BY id DESC LIMIT 1", (amit["id"],))
-        purposes.append(m["purpose"])
+        if m and m["purpose"] not in purposes:
+            purposes.append(m["purpose"])
         approve_all(db)
         send_all(db, cfg)
         time_travel(db, 7)
+        if db.contact(amit["id"])["step"] >= 7:
+            break
+    # No phone / social profile for this lead, so the call and DM steps are skipped automatically.
     assert purposes == ["intro", "bump", "insight", "value", "breakup"]
     process_timers(db, cfg)
     amit = db.contact(amit["id"])
