@@ -141,7 +141,13 @@ def load_config(path: str | os.PathLike | None = None, override_env: bool = Fals
         with open(cfg_path, encoding="utf-8") as fh:
             user = yaml.safe_load(fh) or {}
     # Lists such as `business_types` and sequence `steps` replace the defaults entirely.
-    data = _deep_merge(defaults, _upgrade_old_keys(user))
+    user = _upgrade_old_keys(user)
+    data = _deep_merge(defaults, user)
+    # A chosen service type sets the signal weights, unless you wrote your own `signals:`.
+    from .presets import weights_for
+    stype = str((data.get("profile") or {}).get("service_type") or "website").lower()
+    if stype not in ("website", "custom") and not user.get("signals"):
+        data["signals"] = weights_for(stype) or data.get("signals")
     return Config(data, cfg_path if cfg_path.exists() else None, home)
 
 

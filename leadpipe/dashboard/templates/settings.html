@@ -18,11 +18,15 @@
       <label>Your name<input name="your_name" value="{{ p.your_name }}"></label>
       <label>Business name<input name="business_name" value="{{ p.business_name }}"></label>
       <label>Your website<input name="website" value="{{ p.website }}"></label>
+      <label>Type of service (tunes who's a good lead and how fixes are worded)<select name="service_type">
+        {% for k, v in PRESETS.items() %}<option value="{{ k }}" {{ 'selected' if (p.service_type or 'website') == k }}>{{ v.label }}</option>{% endfor %}
+        <option value="custom" {{ 'selected' if p.service_type == 'custom' }}>Something else (I'll set the weights below)</option></select></label>
       <label>What you sell (owner's words)<input name="service" value="{{ p.service }}" placeholder="websites with online booking"></label>
       <label>Small first offer<input name="starter_offer" value="{{ p.starter_offer }}" placeholder="a one-page website in 5 days"></label>
       <label>Price range (only said when asked)<input name="price_range" value="{{ p.price_range }}"></label>
       <label>Delivery time<input name="delivery_time" value="{{ p.delivery_time }}"></label>
       <label>Free quick win you offer<input name="quick_win" value="{{ p.quick_win }}"></label>
+      <label>Free quick win for businesses with NO website<input name="quick_win_no_site" value="{{ no_site_win }}"></label>
       <label>Calendar booking link<input name="booking_link" value="{{ p.booking_link }}" placeholder="https://cal.com/you/15min"></label>
       <label>Postal address (legal footer)<input name="physical_address" value="{{ p.physical_address }}"></label>
     </div>
@@ -42,9 +46,15 @@
       <label>Your timezone<input name="timezone" value="{{ cfg.data.engine.timezone }}" placeholder="Asia/Kolkata"></label>
       <label>Then these areas (one per line)<textarea name="next_areas" style="min-height:60px">{{ (r.next_areas or [])|join('\n') }}</textarea></label>
       <label>Then these countries, city by city (codes)<input name="countries" value="{{ (r.countries or [])|join(', ') }}"></label>
-      <label>Never search in (country codes)<input name="skip_countries" value="{{ (r.skip_countries or [])|join(', ') }}" placeholder="DE, CA"></label>
+      <label>Never search in (2-letter country codes)<input name="skip_countries" value="{{ (r.skip_countries or [])|join(', ') }}" placeholder="DE, CA"></label>
     </div>
     <label class="check" style="margin-top:8px"><input type="checkbox" name="world_rollout" value="1" {{ 'checked' if r.world_rollout }}> After my areas, keep going: rest of my country, then the countries above</label>
+    <details style="margin-top:10px"><summary>What makes a business a good lead for you (problem weights)</summary>
+      <p class="small muted">Higher = more important, 0 = ignore. Picking a different <b>type of service</b> above loads sensible weights;
+      fine-tune them here. Leads scoring below {{ cfg.data.enrichment.min_score }} are set aside.</p>
+      <div class="formgrid">{% for k, sdef in SIGNALS.items() %}
+        <label title="{{ sdef.explain }}">{{ sdef.label }}<input name="w_{{ k }}" value="{{ (cfg.data.signals or {}).get(k, 0) }}" inputmode="numeric"></label>{% endfor %}</div>
+    </details>
     <p class="small muted">Business types: {{ ', '.join(['dentist','clinic','doctor','cafe','restaurant','bakery','hotel','salon','spa','gym','school','coaching','lawyer','accountant','real_estate','architect','car_repair','plumber','electrician','interior_designer','travel_agency','photographer','jewellery','clothes','furniture','optician']) }} … or an OpenStreetMap tag like shop=bicycle.</p>
   </fieldset>
 
@@ -58,7 +68,8 @@
   </fieldset>
 
   <fieldset><legend>4. Your email (sending mailbox)</legend>
-    <p class="help">Use a separate domain (e.g. get{{ (p.website or 'yourname.com')|replace('https://','')|replace('http://','')|replace('www.','') }}) with SPF, DKIM and DMARC set up. Gmail/Workspace needs an App Password. Passwords are stored only in your local .env file.</p>
+    <p class="help">For real cold email use a mailbox on a separate domain you own (e.g. <b>{{ suggest_domain }}</b>, Google Workspace) with SPF, DKIM and DMARC set up,
+    not a personal @gmail.com address. Gmail/Workspace needs an App Password. Passwords are stored only in your local .env file.</p>
     <div class="formgrid">
       <label>From email<input name="FROM_EMAIL" value="{{ env.FROM_EMAIL or '' }}"></label>
       <label>From name<input name="FROM_NAME" value="{{ env.FROM_NAME or '' }}"></label>
@@ -89,6 +100,8 @@
       <label>Telegram chat id<input name="TELEGRAM_CHAT_ID" value="{{ env.TELEGRAM_CHAT_ID or '' }}"></label>
     </div>
   </fieldset>
+  <label class="check" style="margin-bottom:10px"><input type="checkbox" name="recheck" value="1"> Re-check all leads and rewrite messages that haven't gone out yet
+    <span class="muted small">(happens automatically when you change the service type, weights or business types)</span></label><br>
   <button class="primary cta">Save settings</button>
   <span class="small muted">Saved to config.yaml and .env. The running engine picks them up within a minute.</span>
 </form>

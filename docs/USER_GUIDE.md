@@ -117,11 +117,15 @@ Open http://localhost:8787 → **Settings → Setup** and fill in the form (2 mi
 
 | Section | Fill in | Tips |
 |---|---|---|
-| **1. Your business** | name, what you sell, small first offer, price range, free quick win, booking link, postal address, proof | Write what you sell the way a shop owner would say it. Proof = a real result ("built booking sites for 12 clinics"). Price is only used when someone asks. |
-| **2. Who to reach** | business types, start city, your timezone, next areas, countries | Start where you are. It moves on automatically. |
+| **1. Your business** | **type of service**, name, what you sell, small first offer, price range, free quick win (and one for businesses with no website), booking link, postal address, proof | The **type of service** (Websites · AI automation/chatbots · Ads/marketing · SEO · Reviews · Something else) decides which problems make a good lead and how fixes are worded. Write what you sell the way a shop owner would say it. Proof = a real result; leave it empty if you have none: nothing is ever claimed for you. Price is only used when someone asks. |
+| **2. Who to reach** | business types, start city, your timezone, next areas, countries (2-letter codes: IN, AE, GB, US…), problem weights (optional) | Start where you are. It moves on automatically. Don't put your own country in "Never search in". |
 | **3. Channels** | tick the channels you'll use, tasks per day | Fewer, better calls/DMs beat many. |
 | **4. Your email** | sending mailbox and password | See §13 before switching to LIVE. |
 | **5. Extras** | AI, Serper/Google keys, alerts | All optional. |
+
+When you change the type of service, the problem weights or the business types, every lead is **re-checked**:
+leads that now fit go back in the queue, leads that no longer fit (and were never contacted) are set aside, and messages
+that haven't gone out yet are **rewritten** with the new wording. (Tick *Re-check all leads* to do it any time.)
 
 Then check everything: `leadpipe doctor` (fix every FAIL before going live).
 

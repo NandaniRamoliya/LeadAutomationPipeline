@@ -68,7 +68,9 @@ cutting-edge, synergy, leverage, revolutionize, delve, unlock).
 - No price unless the purpose explicitly allows it. No links in a first email.
 - Do NOT write a sign-off, signature, name, postal address or unsubscribe line. They are added automatically.
 - Respect the word limit. Start with the given greeting line.
-- If subject_mode is "reply", return an empty subject (it is sent as a reply in the same thread)."""
+- If subject_mode is "reply", return an empty subject (it is sent as a reply in the same thread).
+- Pitch only what the sender actually sells (sender.service / service_type) and offer exactly
+  sender.free_quick_win_to_offer. Don't offer a different service (e.g. a website) the sender doesn't sell."""
 
 DRAFT_SCHEMA = {
     "type": "object",
@@ -121,7 +123,12 @@ def build_context(cfg: Config, contact: dict, company: dict, extra: dict | None 
     found = jloads(company.get("signals"), {})
     if any(k in found for k in ("no_website", "instagram_only", "site_broken")):
         # Nothing to audit: offer to show them what a site could look like instead.
-        ctx["quick_win"] = p.get("quick_win_no_site") or "a free mock-up of a simple website for you"
+        from .presets import preset
+        pr = preset(cfg)
+        default_no_site = (pr or {}).get("quick_win_no_site") or "a free mock-up of a simple website for you"
+        custom = p.get("quick_win_no_site")
+        # A website mock-up is the built-in default; follow the service type unless you wrote your own.
+        ctx["quick_win"] = custom if custom and custom != "a free mock-up of a simple website for you" else default_no_site
     qw = ctx["quick_win"]
     for prefix in ("a free ", "an ", "a ", "free "):
         if qw.lower().startswith(prefix):
@@ -135,7 +142,8 @@ def build_context(cfg: Config, contact: dict, company: dict, extra: dict | None 
     if by_cat.get(cat_key):
         proof = [by_cat[cat_key]] + proof
     links = [x for x in (p.get("proof_links") or []) if x]
-    ctx["proof1"] = proof[0] if proof else f"have helped other {ctx['category_plural']} with {ctx['service']}"
+    # Never invent a track record: without proof, describe what you do instead of claiming results.
+    ctx["proof1"] = proof[0] if proof else f"build {ctx['service']} for businesses like yours"
     ctx["proof_line"] = f"I've {proof[0]}, so I see this a lot. " if proof else ""
     ctx["proof_link_line"] = f"Here's an example of my work: {links[0]}\n\n" if links else ""
     ctx["portfolio_line"] = (f"Here's some recent work: {', '.join(links[:3])}." if links
@@ -149,7 +157,8 @@ def build_context(cfg: Config, contact: dict, company: dict, extra: dict | None 
         if isinstance(evidence, dict):
             local.update({k: v for k, v in evidence.items() if isinstance(v, (str, int, float))})
         local.setdefault("copyright_year", "an old year")
-        return fill(SIGNALS[key][field], local)
+        from .presets import override
+        return fill(override(cfg, key, field) or SIGNALS[key][field], local)
 
     ctx["obs1"] = sig_text(0, "observation") or f"I was looking at {name} and think there's an easy win around {ctx['service']}."
     ctx["cost1"] = sig_text(0, "cost") or "Small gaps like this quietly cost enquiries every week."
@@ -173,7 +182,7 @@ def build_context(cfg: Config, contact: dict, company: dict, extra: dict | None 
     ctx["first_or_owner"] = first or "the owner"
     ctx["business_name"] = p.get("business_name", "")
     ctx["cost1_short"] = ctx["cost1"].split(". ")[0].rstrip(".") + "."
-    ctx["proof1_short"] = (proof[0] if proof else f"help {ctx['category_plural']} with {ctx['service']}")
+    ctx["proof1_short"] = (proof[0] if proof else f"build {ctx['service']}")
     ctx["online_presence"] = "website" if site else ("Instagram page" if company.get("instagram") else "Google listing")
     from .channels import parse_phone
     ph = parse_phone(contact.get("phone") or company.get("phone"), company.get("country"))
@@ -212,10 +221,16 @@ class Writer:
             return None
         limit = compliance.WORD_LIMITS.get(purpose, 120)
         sigs = jloads(company.get("signals"), {})
+        from .presets import preset
+        pr = preset(self.cfg)
+        sender = {k: self.cfg.get(f"profile.{k}") for k in
+                  ("your_name", "business_name", "service", "service_long", "starter_offer",
+                   "proof", "proof_links", "booking_link", "delivery_time")}
+        sender["service_type"] = pr["label"] if pr else self.cfg.get("profile.service_type")
+        sender["free_quick_win_to_offer"] = ctx["quick_win"]        # already adapted to this lead (e.g. no website)
         data = {
-            "sender": {k: self.cfg.get(f"profile.{k}") for k in
-                       ("your_name", "business_name", "service", "service_long", "starter_offer", "quick_win",
-                        "proof", "proof_links", "booking_link", "delivery_time")},
+            "sender": sender,
+            "suggested_fix_in_sender_terms": ctx.get("fix1"),
             "lead": {"company": company.get("name"), "category": company.get("category"), "city": company.get("city"),
                      "website": display_site(company.get("website")), "contact_name": contact.get("full_name"),
                      "contact_role": contact.get("role")},
@@ -429,3 +444,15 @@ def regenerate(db: DB, cfg: Config, message_id: int, writer: Writer | None = Non
     return queue_message(db, cfg, contact, company, draft, "sequence", sequence=m["sequence"], step=m["step"],
                          purpose=m["purpose"], scheduled_for=m["scheduled_for"], channel=m.get("channel"),
                          target=m.get("to_addr"))
+
+
+def rewrite_waiting(db: DB, cfg: Config, writer: Writer | None = None) -> int:
+    """Rewrite every outreach draft/task that hasn't gone out yet, with the current settings."""
+    writer = writer or Writer(db, cfg)
+    n = 0
+    for m in db.all("SELECT id FROM messages WHERE direction='out' AND kind='sequence' AND status IN ('pending','approved')"):
+        if regenerate(db, cfg, m["id"], writer):
+            n += 1
+    if n:
+        db.log("write", f"rewrote {n} waiting messages with your new settings")
+    return n

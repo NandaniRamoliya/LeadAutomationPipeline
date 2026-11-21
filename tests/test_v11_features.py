@@ -292,7 +292,8 @@ def test_dashboard_setup_form_saves(cfg, db, tmp_path):
 
     from leadpipe.dashboard.app import create_app
     from leadpipe.config import DEFAULT_CONFIG_PATH
-    cfg.config_path.write_text(DEFAULT_CONFIG_PATH.read_text(encoding="utf-8"), encoding="utf-8")
+    cfg.config_path.write_text(DEFAULT_CONFIG_PATH.read_text(encoding="utf-8").replace("provider: auto", "provider: none"),
+                               encoding="utf-8")
     cfg.reload_if_changed()
     app = create_app(cfg, db)
     app.testing = True
@@ -309,3 +310,57 @@ def test_dashboard_setup_form_saves(cfg, db, tmp_path):
     assert cfg.get("channels.enabled") == ["email", "whatsapp", "call"] and cfg.get("sending.mode") == "dry_run"
     assert "SMTP_PASSWORD=pw" in cfg.env_path.read_text()
     assert db.scalar("SELECT COUNT(*) FROM areas WHERE name='Surat, India'") == 1
+
+
+# ---- service types (e.g. AI automation instead of websites) ----------------------------------------
+def test_service_type_changes_targeting_and_wording(cfg, db, tmp_path):
+    import re
+
+    from leadpipe.config import DEFAULT_CONFIG_PATH
+    from leadpipe.dashboard.app import create_app
+    cfg.config_path.write_text(DEFAULT_CONFIG_PATH.read_text(encoding="utf-8").replace("provider: auto", "provider: none"),
+                               encoding="utf-8")
+    cfg.reload_if_changed()
+    # Two leads found while the default (website) settings were active: a café and a dentist, both without a website.
+    for name, cat, ref in (("Episode Coffee Lounge", "cafe", "node/1"), ("Bright Smile Dental", "dentist", "node/2")):
+        cid = db.insert("companies", {"name": name, "category": cat, "phone": "+91 99048 07788" if cat == "cafe" else "+91 98250 77777",
+                                      "country": "IN", "timezone": "Asia/Kolkata", "source": "osm", "source_ref": ref, "status": "new"})
+        enrich_company(db, cfg, db.company(cid), audit=SiteAudit(url=None, signals={"no_website": "no website listed"}))
+    enroll_new_contacts(db, cfg)
+    write_due(db, cfg)
+    cafe_task = db.one("SELECT m.* FROM messages m JOIN companies c ON c.id = m.company_id WHERE c.name LIKE 'Episode%'")
+    assert "website" in cafe_task["body"].lower()                      # old, website-seller wording
+
+    app = create_app(cfg, db)
+    app.testing = True
+    c = app.test_client()
+    token = re.search(r'name="_csrf" value="([0-9a-f]+)"', c.get("/settings").get_data(as_text=True)).group(1)
+    c.post("/settings/setup", data={
+        "_csrf": token, "your_name": "Nandani Ramoliya", "business_name": "Indrix", "service_type": "automation",
+        "service": "AI automation for enquiries, bookings and follow-ups on WhatsApp and email",
+        "business_types": "dentist, clinic, salon", "start_area": "Surat, India", "skip_countries": "INDIA, Narnia, DE",
+        "countries": "uae, GB", "channels": ["email", "whatsapp", "call"], "tasks_per_day": "25",
+        "min_score_for_tasks": "40", "daily_cap": "40", "new_leads_per_day": "15", "timezone": "Asia/Kolkata",
+        "FROM_EMAIL": "nandani@gmail.com", "llm_provider": "none"})
+    assert cfg.get("profile.service_type") == "automation"
+    assert cfg.get("signals.no_live_chat") == 25 and cfg.get("signals.no_https") == 0
+    assert cfg.get("reach.skip_countries") == ["DE"]                   # 'INDIA' (own country) removed, 'Narnia' rejected
+    assert cfg.get("reach.countries") == ["AE", "GB"]
+    flashes = c.get("/settings").get_data(as_text=True)
+    assert "own start country" in flashes and "Narnia" in flashes and "personal address" in flashes
+    # The café no longer fits (cafés removed) -> its waiting WhatsApp task is cancelled, nothing was ever sent.
+    assert db.message(cafe_task["id"])["status"] in ("cancelled", "rejected")
+    assert not db.one("""SELECT 1 FROM messages m JOIN companies c ON c.id = m.company_id
+                         WHERE c.name LIKE 'Episode%' AND m.status IN ('pending','approved')""")
+    # The dentist's waiting message is rewritten for an automation seller (no website mock-up any more).
+    dent = db.one("""SELECT m.* FROM messages m JOIN companies c ON c.id = m.company_id
+                     WHERE c.name LIKE 'Bright Smile%' AND m.status = 'pending'""")
+    assert dent and "mock-up of a simple website" not in dent["body"]
+    assert "whatsapp" in dent["body"].lower() and "automatic" in dent["body"].lower()
+
+
+def test_no_proof_never_claims_results(cfg, db):
+    from leadpipe.writer import build_context
+    cfg.data["profile"]["proof"] = []
+    ctx = build_context(cfg, {"first_name": "Ravi"}, {"name": "X Dental", "category": "dentist"})
+    assert "helped" not in ctx["proof1"] and ctx["proof_line"] == ""

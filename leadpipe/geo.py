@@ -127,12 +127,26 @@ DEFAULT_COUNTRY_ORDER = ["AE", "GB", "US", "AU", "CA", "SG", "NZ", "IE", "SA", "
 def country_code_for(name: str | None) -> str | None:
     if not name:
         return None
-    n = name.strip().lower()
-    if len(n) == 2:
-        return n.upper()
+    n = name.strip().lower().rstrip(".")
+    if len(n) == 2 and n.isalpha():
+        return "GB" if n == "uk" else n.upper()
     for code, full in COUNTRY_NAMES.items():
         if full.lower() == n:
             return code
-    aliases = {"uk": "GB", "england": "GB", "usa": "US", "united states of america": "US", "uae": "AE",
-               "emirates": "AE", "bharat": "IN"}
-    return aliases.get(n)
+    aliases = {"uk": "GB", "england": "GB", "britain": "GB", "great britain": "GB", "usa": "US", "us": "US",
+               "america": "US", "united states of america": "US", "uae": "AE", "emirates": "AE", "dubai": "AE",
+               "bharat": "IN", "ksa": "SA", "south korea": "KR", "korea": "KR", "russia": "RU", "china": "CN",
+               "canada": "CA", "germany": "DE", "deutschland": "DE"}
+    if n in aliases:
+        return aliases[n]
+    try:  # any country name the timezone database knows
+        import importlib.resources as res
+        text = res.files("tzdata").joinpath("zoneinfo").joinpath("iso3166.tab").read_text(encoding="utf-8")
+        for line in text.splitlines():
+            if line and not line.startswith("#"):
+                code, _, full = line.partition("\t")
+                if full.strip().lower() == n:
+                    return code.upper()
+    except Exception:
+        pass
+    return None

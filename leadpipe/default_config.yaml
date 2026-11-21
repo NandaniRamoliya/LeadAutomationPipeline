@@ -17,6 +17,9 @@ profile:
   # What you sell, in the words a business owner would use.
   service: "websites with online booking"
   service_long: "I build fast, mobile-friendly websites with online booking for local businesses."
+  # What kind of service this is: website | automation | marketing | seo | reviews | custom.
+  # It sets which problems make a good lead and how fixes are worded. "custom" = use the `signals:` weights below.
+  service_type: "website"
   # The quick, low-risk first project you offer.
   starter_offer: "a booking-ready one-page website in 5 days"
   # Only used when someone asks "how much?". Never in a first message.
@@ -82,7 +85,8 @@ enrichment:
   hiring_roles: []                    # roles that mean "they're buying", e.g. ["marketing", "receptionist"]
 
 # What makes a business a GOOD lead for YOU. Weight 0 = ignore, higher = more important.
-# Pick the ones your service actually fixes. `leadpipe signals` explains each one.
+# Used when profile.service_type is "custom" (otherwise the service type's weights apply; the dashboard
+# writes them here when you pick a type, so you can fine-tune them). `leadpipe signals` explains each one.
 signals:
   no_website: 25
   site_broken: 20

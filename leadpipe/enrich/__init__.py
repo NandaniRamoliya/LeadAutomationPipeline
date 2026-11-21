@@ -242,3 +242,54 @@ def enrich_pending(db: DB, cfg: Config, limit: int | None = None, llm: LLM | Non
             db.update("companies", c["id"], {"status": "error", "status_reason": str(exc)[:300]})
             db.log("enrich", f"{c['name']}: error {exc}", level="error", company_id=c["id"])
     return len(rows)
+
+
+def _allowed_osm_values(cfg: Config) -> set[str]:
+    from ..discovery.osm import tags_for
+    vals: set[str] = set()
+    for t in cfg.get("reach.business_types") or []:
+        for tag in tags_for(t):
+            for part in tag.split("]["):
+                vals.add(part.split("=")[-1].lower())
+    return vals
+
+
+def rescore_all(db: DB, cfg: Config) -> dict:
+    """Re-score every researched company with the current settings (after you change your service type, signal
+    weights or business types). Leads that now qualify go back in the queue. Leads that no longer fit and haven't
+    been contacted yet are set aside, and their waiting messages are cancelled."""
+    from ..pipeline import set_stage
+    min_score = float(cfg.get("enrichment.min_score", 25))
+    allowed = _allowed_osm_values(cfg)
+    out = {"qualified": 0, "set_aside": 0}
+    for co in db.all("SELECT * FROM companies WHERE status IN ('qualified','disqualified') AND enriched_at IS NOT NULL"):
+        if (co.get("status_reason") or "").startswith(("country", "no email, phone")):
+            continue
+        contacts = db.all("SELECT * FROM contacts WHERE company_id = ?", (co["id"],))
+        best = next((c["email_status"] for c in contacts if c.get("email")), None)
+        score = score_company(cfg, json.loads(co.get("signals") or "{}"), any(c.get("full_name") for c in contacts),
+                              best, bool(co.get("priority")))
+        wrong_type = (co.get("source") == "osm" and allowed and (co.get("category") or "").lower() not in allowed
+                      and not co.get("priority"))
+        ok = (score >= min_score or bool(co.get("priority"))) and not wrong_type
+        vals: dict = {"score": score}
+        if ok and co["status"] == "disqualified":
+            vals.update(status="qualified", status_reason=f"score {score}")
+            for c in contacts:
+                if c["stage"] == "lost" and (c.get("lost_reason") or "").startswith(("score", "business type")):
+                    db.update("contacts", c["id"], {"stage": "new", "lost_reason": None})
+            out["qualified"] += 1
+        elif not ok and co["status"] == "qualified":
+            touched = db.scalar("""SELECT 1 FROM messages WHERE company_id = ? AND (status = 'sent' OR direction = 'in')""",
+                                (co["id"],))
+            if not touched:
+                reason = ("business type no longer in your list" if wrong_type
+                          else f"score {score} below min_score (few problems your service fixes)")
+                vals.update(status="disqualified", status_reason=reason)
+                for c in contacts:
+                    if c["stage"] in ("new", "cold"):
+                        set_stage(db, cfg, c["id"], "lost", reason)
+                out["set_aside"] += 1
+        db.update("companies", co["id"], vals)
+    db.log("enrich", f"re-checked leads with your new settings: {out['qualified']} now qualify, {out['set_aside']} set aside")
+    return out

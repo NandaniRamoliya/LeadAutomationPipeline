@@ -446,14 +446,27 @@ def create_app(cfg: Config, db: DB, engine=None) -> Flask:
         areas = db.all("""SELECT * FROM areas ORDER BY CASE status WHEN 'active' THEN 0 WHEN 'pending' THEN 1
                           WHEN 'done' THEN 2 ELSE 3 END, position, id LIMIT 300""")
         envv = env_file_values(cfg)
+        from ..presets import PRESETS, preset
+        from urllib.parse import urlparse
+        site_host = (urlparse(cfg.get("profile.website") or "").hostname or "").replace("www.", "")
+        biz = "".join(ch for ch in (cfg.get("profile.business_name") or "yourname").lower() if ch.isalnum()) or "yourname"
+        suggest = f"get{site_host}" if site_host and site_host.count(".") == 1 else f"get{biz}.com"
+        no_site_win = cfg.get("profile.quick_win_no_site") or (preset(cfg) or PRESETS["website"])["quick_win_no_site"]
         return render_template("settings.html", cfg=cfg, areas=areas, env=envv, mailboxes=mailboxes(cfg),
+                               PRESETS=PRESETS, suggest_domain=suggest, no_site_win=no_site_win,
                                suppression=db.all("SELECT * FROM suppression ORDER BY created_at DESC LIMIT 200"),
                                service=service_status(), SIGNALS=SIGNALS, ALL_CHANNELS=chn.ALL_CHANNELS,
                                tab=request.args.get("tab", "setup"))
 
     @app.post("/settings/setup")
     def settings_setup():
+        from ..geo import country_code_for
+        from ..presets import PRESETS, weights_for
         f = request.form
+        warnings: list[str] = []
+        old_type = str(cfg.get("profile.service_type") or "website")
+        old_signals = dict(cfg.section("signals"))
+        old_types = list(cfg.get("reach.business_types") or [])
         lst = lambda k: [x.strip() for x in f.get(k, "").replace("\n", ",").split(",") if x.strip()]  # noqa: E731
         changes = {
             "profile.your_name": f.get("your_name", "").strip(),
@@ -474,8 +487,9 @@ def create_app(cfg: Config, db: DB, engine=None) -> Flask:
             "reach.start_area": f.get("start_area", "").strip(),
             "reach.next_areas": [x.strip() for x in f.get("next_areas", "").splitlines() if x.strip()],
             "reach.world_rollout": f.get("world_rollout") == "1",
-            "reach.countries": [x.upper() for x in lst("countries")],
-            "reach.skip_countries": [x.upper() for x in lst("skip_countries")],
+            "reach.countries": _codes(lst("countries"), warnings, "Then these countries"),
+            "reach.skip_countries": _codes(lst("skip_countries"), warnings, "Never search in"),
+            "profile.quick_win_no_site": f.get("quick_win_no_site", "").strip(),
             "engine.timezone": f.get("timezone", "").strip() or "UTC",
             "channels.enabled": f.getlist("channels") or ["email"],
             "channels.tasks_per_day": int(f.get("tasks_per_day") or 25),
@@ -484,9 +498,36 @@ def create_app(cfg: Config, db: DB, engine=None) -> Flask:
             "sending.daily_cap": int(f.get("daily_cap") or 40),
             "sending.new_leads_per_day": int(f.get("new_leads_per_day") or 15),
             "notifications.owner_email": f.get("owner_email", "").strip(),
-            "llm.provider": f.get("llm_provider") or "auto",
         }
+        if f.get("llm_provider"):
+            changes["llm.provider"] = f["llm_provider"]
         changes = {k: v for k, v in changes.items() if v != "" or k.startswith("notifications.")}
+        # Service type → problem weights. Picking a new type loads its weights; otherwise your edited numbers are kept.
+        new_type = f.get("service_type") or old_type
+        changes["profile.service_type"] = new_type
+        if new_type != old_type and new_type in PRESETS:
+            changes["signals"] = weights_for(new_type)
+            pq = PRESETS[new_type]["quick_win_no_site"]
+            if f.get("quick_win_no_site", "").strip() in ("", PRESETS.get(old_type, {}).get("quick_win_no_site", "")):
+                changes["profile.quick_win_no_site"] = pq
+        else:
+            weights = {}
+            for k in SIGNALS:
+                v = f.get(f"w_{k}")
+                if v not in (None, ""):
+                    try:
+                        weights[k] = int(float(v))
+                    except ValueError:
+                        pass
+            if weights:
+                changes["signals"] = {**old_signals, **weights}
+        start_cc = country_code_for(changes.get("reach.start_area", "").split(",")[-1]) if "," in changes.get("reach.start_area", "") else None
+        if start_cc and start_cc in changes.get("reach.skip_countries", []):
+            changes["reach.skip_countries"] = [c for c in changes["reach.skip_countries"] if c != start_cc]
+            warnings.append(f"'Never search in' contained your own start country ({start_cc}); I removed it so your start area still works.")
+        if "@" in f.get("FROM_EMAIL", "") and f.get("FROM_EMAIL", "").lower().endswith(("@gmail.com", "@yahoo.com", "@outlook.com", "@hotmail.com")):
+            warnings.append("You're sending from a personal address. Fine for testing; for real cold email use a mailbox on your own "
+                            "separate domain (Google Workspace), or the account may be limited or suspended.")
         try:
             save_settings(cfg, changes)
             env_changes = {k: f.get(k, "").strip() for k in
@@ -501,7 +542,26 @@ def create_app(cfg: Config, db: DB, engine=None) -> Flask:
             save_env(cfg, env_changes)
             from ..discovery import seed_areas
             seed_areas(db, cfg)
-            flash("Saved. The engine uses the new settings within a minute.", "ok")
+            if start_cc or changes.get("reach.skip_countries") is not None:
+                skip = set(cfg.get("reach.skip_countries") or [])
+                for a in db.all("SELECT id, country, status FROM areas WHERE status IN ('pending','skipped')"):
+                    if a["country"] in skip and a["status"] == "pending":
+                        db.update("areas", a["id"], {"status": "skipped", "note": "country skipped in settings"})
+                    elif a["country"] not in skip and a["status"] == "skipped":
+                        db.update("areas", a["id"], {"status": "pending", "note": None})
+            msg = "Saved. The engine uses the new settings within a minute."
+            changed_targeting = (dict(cfg.section("signals")) != old_signals or new_type != old_type
+                                 or list(cfg.get("reach.business_types") or []) != old_types)
+            if f.get("recheck") == "1" or changed_targeting:
+                from ..enrich import rescore_all
+                from ..writer import rewrite_waiting
+                r = rescore_all(db, cfg)
+                n = rewrite_waiting(db, cfg, writer())
+                msg += (f" Re-checked your leads: {r['qualified']} now qualify, {r['set_aside']} set aside; "
+                        f"{n} waiting messages rewritten with the new wording.")
+            flash(msg, "ok")
+            for w in warnings:
+                flash(w, "error")
         except Exception as exc:
             log.exception("settings save failed")
             flash(f"Could not save: {exc}", "error")
@@ -658,6 +718,20 @@ def create_app(cfg: Config, db: DB, engine=None) -> Flask:
         return {"ok": True, "matched_contacts": matched}
 
     return app
+
+
+def _codes(values: list[str], warnings: list[str], field: str) -> list[str]:
+    """'India', 'uae', 'IN' -> ['IN', 'AE']. Unknown names are reported, not saved."""
+    from ..geo import country_code_for
+    out = []
+    for v in values:
+        code = country_code_for(v)
+        if code and len(code) == 2 and code.isalpha():
+            if code not in out:
+                out.append(code)
+        else:
+            warnings.append(f"'{v}' in '{field}' isn't a country I know. Use 2-letter codes like IN, AE, GB, US.")
+    return out
 
 
 PLACEHOLDERS = {"Your Name", "Your Studio", "https://cal.com/your-name/15min",
