@@ -1,0 +1,968 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<title>LeadAutomationPipeline: Developer Guide</title><style>
+@page { size: A4; margin: 18mm 16mm 20mm 16mm; }
+:root { --ink:#1b1f24; --muted:#5d6673; --line:#dfe3e8; --accent:#2d5bd8; --soft:#eef2fc; --code:#f4f6f8; }
+* { box-sizing: border-box; }
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+body { font-family: Inter, "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif; color: var(--ink);
+       font-size: 10.4pt; line-height: 1.5; margin: 0; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; page-break-after: always;
+         border-left: 8px solid var(--accent); padding-left: 14mm; }
+.cover .kicker { color: var(--accent); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; font-size: 11pt; }
+.cover h1 { font-size: 34pt; line-height: 1.1; margin: 6mm 0 4mm; border: none; padding: 0; }
+.cover p { font-size: 13pt; color: var(--muted); max-width: 140mm; margin: 0 0 3mm; }
+.cover .meta { margin-top: 14mm; font-size: 10pt; color: var(--muted); }
+h1 { font-size: 20pt; margin: 0 0 4mm; padding-bottom: 2mm; border-bottom: 2px solid var(--accent); }
+h2 { font-size: 15pt; margin: 9mm 0 3mm; padding-bottom: 1.5mm; border-bottom: 1px solid var(--line); page-break-after: avoid; }
+h2:not(:first-of-type) { page-break-before: always; margin-top: 0; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; page-break-after: avoid; color: #213a8a; }
+p, ul, ol { margin: 0 0 2.6mm; }
+li { margin-bottom: 1mm; }
+a { color: var(--accent); text-decoration: none; }
+strong { font-weight: 650; }
+code { font-family: "JetBrains Mono", Consolas, "Cascadia Mono", Menlo, monospace; font-size: 8.8pt;
+       background: var(--code); padding: .5px 4px; border-radius: 3px; }
+pre { background: var(--code); border: 1px solid var(--line); border-radius: 6px; padding: 3mm 4mm; overflow: hidden;
+      white-space: pre-wrap; word-break: break-word; page-break-inside: avoid; margin: 0 0 3mm; }
+pre code { background: none; padding: 0; font-size: 8.4pt; line-height: 1.45; }
+table { width: 100%; border-collapse: collapse; margin: 0 0 3.5mm; font-size: 9pt; page-break-inside: auto; }
+tr { page-break-inside: avoid; }
+th, td { border: 1px solid var(--line); padding: 1.6mm 2.2mm; vertical-align: top; text-align: left; }
+th { background: var(--soft); font-weight: 650; }
+tbody tr:nth-child(even) td { background: #fafbfc; }
+blockquote { margin: 0 0 3mm; padding: 2mm 4mm; border-left: 3px solid var(--accent); background: var(--soft); color: #2b3440; }
+blockquote p:last-child { margin: 0; }
+hr { border: none; border-top: 1px solid var(--line); margin: 5mm 0; }
+.toc-note { color: var(--muted); font-size: 9pt; }
+</style></head><body>
+<section class="cover"><div class="kicker">LeadAutomationPipeline</div><h1>Developer Guide</h1>
+<p>Architecture, data model, modules, configuration, extending, testing and deployment.</p><div class="meta">Version 1.1 · 22 November 2026<br>github.com/NandaniRamoliya/LeadAutomationPipeline</div></section>
+<main><p>For anyone who wants to understand, change, extend or deploy the code. For <em>using</em> the product, see the
+<a href="https://github.com/NandaniRamoliya/LeadAutomationPipeline/blob/main/docs/USER_GUIDE.md">User Guide</a>.</p>
+<p><strong>Contents</strong></p>
+<ol>
+<li><a href="#1-overview-and-design-principles">Overview and design principles</a></li>
+<li><a href="#2-development-setup">Development setup</a></li>
+<li><a href="#3-repository-layout">Repository layout</a></li>
+<li><a href="#4-how-it-runs">How it runs</a></li>
+<li><a href="#5-data-model">Data model</a></li>
+<li><a href="#6-the-lead-lifecycle">The lead lifecycle</a></li>
+<li><a href="#7-discovery-finding-businesses">Discovery: finding businesses</a></li>
+<li><a href="#8-research-scoring-and-qualification">Research, scoring and qualification</a></li>
+<li><a href="#9-channels-and-the-to-do-tasks">Channels and the To-do tasks</a></li>
+<li><a href="#10-writing-messages">Writing messages</a></li>
+<li><a href="#11-sending-email">Sending email</a></li>
+<li><a href="#12-reading-and-handling-replies">Reading and handling replies</a></li>
+<li><a href="#13-client-onboarding">Client onboarding</a></li>
+<li><a href="#14-the-ai-layer">The AI layer</a></li>
+<li><a href="#15-the-dashboard">The dashboard</a></li>
+<li><a href="#16-configuration-reference">Configuration reference</a></li>
+<li><a href="#17-command-line-interface">Command-line interface</a></li>
+<li><a href="#18-extending-recipes">Extending: recipes</a></li>
+<li><a href="#19-testing">Testing</a></li>
+<li><a href="#20-deployment-and-operations">Deployment and operations</a></li>
+<li><a href="#21-conventions-and-contributing">Conventions and contributing</a></li>
+</ol>
+<hr />
+<h2 id="1-overview-and-design-principles">1. Overview and design principles</h2>
+<p>LeadAutomationPipeline is a single Python package (<code>leadpipe</code>) that runs an outbound sales pipeline 24/7:
+<strong>find → research → score → write → send / task → read replies → move to the right follow-up track → onboard</strong>.</p>
+<table>
+<thead>
+<tr>
+<th>Principle</th>
+<th>What it means in the code</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Deterministic where possible</strong></td>
+<td>Website research, scoring, channel choice, scheduling, safety checks and the engine's priorities are plain code. AI is only used to <em>write</em> and to <em>understand</em> replies, and every AI output is re-checked.</td>
+</tr>
+<tr>
+<td><strong>Never stop the loop</strong></td>
+<td>Every engine job is wrapped; a failure is logged to <code>events</code> and retried next cycle. Missing network, AI or mailbox degrade gracefully.</td>
+</tr>
+<tr>
+<td><strong>Nothing unsafe by default</strong></td>
+<td>Test mode (<code>dry_run</code>), approval before sending, caps and warm-up, suppression checked at send time, one engine per database.</td>
+</tr>
+<tr>
+<td><strong>Honest messages</strong></td>
+<td>Templates and the AI only use facts recorded with evidence; no invented results, compliments or numbers.</td>
+</tr>
+<tr>
+<td><strong>One file of state</strong></td>
+<td>Everything lives in one SQLite database (<code>data/leadpipe.db</code>). Back it up and you have everything.</td>
+</tr>
+<tr>
+<td><strong>Humans for risky channels</strong></td>
+<td>Only email is sent automatically. WhatsApp, Instagram, LinkedIn, X, Facebook and calls are prepared as one-click tasks.</td>
+</tr>
+</tbody>
+</table>
+<p>Stack: Python ≥ 3.10, SQLite (WAL), Flask + Waitress, <code>requests</code>, BeautifulSoup, <code>dnspython</code>, <code>phonenumbers</code>,
+<code>ruamel.yaml</code>, <code>PyYAML</code>, <code>python-dotenv</code>, <code>tzdata</code>, optional <code>anthropic</code>. Tests: <code>pytest</code>.</p>
+<hr />
+<h2 id="2-development-setup">2. Development setup</h2>
+<pre><code class="language-bash">git clone https://github.com/NandaniRamoliya/LeadAutomationPipeline.git
+cd LeadAutomationPipeline
+python -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+pip install -e &quot;.[dev]&quot;
+pytest                             # 42 tests, no network needed, ~3 s
+</code></pre>
+<p>Useful during development:</p>
+<pre><code class="language-bash">leadpipe demo --folder demo                   # a throw-away database with every situation
+leadpipe -c demo/config.yaml dashboard        # UI on http://localhost:8787
+leadpipe -c demo/config.yaml run --once -v    # one engine cycle, verbose
+leadpipe -c demo/config.yaml simulate-reply 4 &quot;How much would this cost?&quot;
+python -m pyflakes leadpipe tests             # lint (keep it clean)
+</code></pre>
+<p><code>-c path/to/config.yaml</code> selects a setup; its folder holds <code>.env</code> and <code>data/</code> (database, logs, dry-run emails).
+<code>LEADPIPE_DATA_DIR</code> and <code>LEADPIPE_DB</code> override the data location (the tests use them).</p>
+<hr />
+<h2 id="3-repository-layout">3. Repository layout</h2>
+<pre><code>leadpipe/
+  __main__.py, cli.py     `leadpipe` commands (argparse)
+  config.py               Config object, load/merge defaults, live reload, comment-preserving writer
+  default_config.yaml     every setting with its default and an explanation (the source of truth)
+  db.py                   SQLite schema, migrations, small helper API, kv store, event log
+  engine.py               the 24/7 loop, job scheduling, single-instance lock, engine status
+  service.py              background service files (Windows/macOS/Linux), keep-awake, file logging
+  pipeline.py             stages, follow-up tracks, set_stage / advance / skip / timers, suppression
+  discovery/              areas rollout, OpenStreetMap, Serper, Google Places, CSV / Google Sheets import
+  enrich/                 website audit, email patterns, email verification, scoring, re-scoring
+  channels.py             phones, social handles, channel availability and choice, one-click links
+  presets.py              service types (website / automation / marketing / seo / reviews)
+  templates.py            signals catalogue, email/DM templates, call scripts, Closer replies, onboarding emails
+  writer.py               context building, AI/template drafting, queueing, write_due, rewrite_waiting
+  compliance.py           pre-send checks and the legal footer
+  mailboxes.py            sending mailboxes (main from .env + extras from config)
+  sender.py               the send job: caps, warm-up, office hours, gaps, threading, dry-run
+  inbox.py                IMAP reader (read-only) and message parsing
+  classifier.py           reply intent: rules + optional AI
+  handler.py              reply -&gt; match lead -&gt; intent -&gt; stage -&gt; drafted answer -&gt; alert
+  tasks.py                To-do list, call outcomes, DM completion, logged replies, call-list export
+  onboarding.py           contract -&gt; payment -&gt; welcome -&gt; kickoff -&gt; access -&gt; portal -&gt; client care
+  analytics.py            overview numbers, per-step / per-signal / per-category rates, daily digest
+  notify.py               alerts: email, webhook (Slack/Discord), Telegram
+  llm.py                  Claude API / Claude CLI / none, JSON-schema calls, daily budget
+  doctor.py               setup checks (DNS, SMTP, IMAP, AI, service), `train` profile helper
+  geo.py                  offline timezones (tzdata zone table), world city list, country names
+  demo.py                 the demo database
+  dashboard/app.py        Flask routes; templates/ (Jinja2) and static/style.css
+tests/                    pytest suite (fixtures/site/ is a tiny website for audit tests)
+docs/                     user guide, developer guide, playbook, legal, templates, PDFs
+deploy/                   systemd unit, Windows .bat, Caddy example
+Dockerfile, docker-compose.yml, pyproject.toml, requirements.txt, .env.example
+</code></pre>
+<hr />
+<h2 id="4-how-it-runs">4. How it runs</h2>
+<h3 id="processes-and-threads">Processes and threads</h3>
+<p><code>leadpipe start</code> runs one process: the <strong>engine</strong> in a background thread and the <strong>dashboard</strong> (Waitress) in the
+main thread. Both share one <code>Config</code> object and one <code>DB</code> object (thread-safe through an <code>RLock</code>; SQLite WAL also
+allows a separate <code>leadpipe dashboard</code> process). <code>leadpipe run</code> is the engine alone; <code>leadpipe dashboard</code> is the UI alone.</p>
+<p><strong>Single instance:</strong> <code>data/engine.lock</code> holds the engine's PID. <code>engine_running_elsewhere()</code> checks whether that PID
+is alive (<code>os.kill(pid, 0)</code>, or <code>tasklist</code> on Windows). A second <code>start</code> exits with "already running"; this is what
+makes the Windows 5-minute "start if not running" trigger safe.</p>
+<h3 id="the-engine-cycle-engineenginecycle">The engine cycle (<code>engine.Engine.cycle</code>)</h3>
+<p>Every <code>engine.tick_seconds</code> (default 60):</p>
+<table>
+<thead>
+<tr>
+<th>Order</th>
+<th>Job</th>
+<th>Frequency</th>
+<th>Function</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>heartbeat, reload settings if <code>config.yaml</code>/<code>.env</code> changed, stop if <code>engine_paused</code></td>
+<td>every tick</td>
+<td><code>Config.reload_if_changed</code></td>
+</tr>
+<tr>
+<td>1</td>
+<td>read replies from every mailbox</td>
+<td><code>inbox_every_minutes</code> (5)</td>
+<td><code>handler.process_inbox</code></td>
+</tr>
+<tr>
+<td>2</td>
+<td>close finished tracks, move booked calls to proposal</td>
+<td>every tick</td>
+<td><code>pipeline.process_timers</code></td>
+</tr>
+<tr>
+<td>3</td>
+<td>advance onboarding</td>
+<td>every tick</td>
+<td><code>onboarding.tick</code></td>
+</tr>
+<tr>
+<td>4</td>
+<td>send ≤ 1 email per mailbox</td>
+<td>every tick (gap-limited)</td>
+<td><code>sender.send_due</code></td>
+</tr>
+<tr>
+<td>5</td>
+<td>enroll new leads, write due messages/tasks</td>
+<td><code>write_every_minutes</code> (10)</td>
+<td><code>pipeline.enroll_new_contacts</code>, <code>writer.write_due</code></td>
+</tr>
+<tr>
+<td>6</td>
+<td>research new companies</td>
+<td><code>enrich_every_minutes</code> (15)</td>
+<td><code>enrich.enrich_pending</code></td>
+</tr>
+<tr>
+<td>7</td>
+<td>search the next map tile when the queue is low</td>
+<td><code>discover_every_minutes</code> (30) and <code>fresh_leads &lt; min_ready_leads</code></td>
+<td><code>discovery.run_discovery</code></td>
+</tr>
+<tr>
+<td>8</td>
+<td>re-import Google Sheets</td>
+<td><code>sources.sheet_sync_hours</code> (6)</td>
+<td><code>csv_import.sync_sheets</code></td>
+</tr>
+<tr>
+<td>9</td>
+<td>daily digest</td>
+<td>once a day after <code>daily_digest_hour</code></td>
+<td><code>analytics.digest_text</code> + <code>notify</code></td>
+</tr>
+</tbody>
+</table>
+<p>Job timestamps are stored in <code>kv</code> (<code>job:&lt;name&gt;</code>), so restarts don't reset schedules. Each job runs through
+<code>Engine._run</code>, which catches every exception and logs it.</p>
+<h3 id="background-service-and-keep-awake-servicepy">Background service and keep-awake (<code>service.py</code>)</h3>
+<p><code>leadpipe service install</code> writes and registers an OS definition that runs
+<code>&lt;python&gt; -m leadpipe -c &lt;config&gt; start --background</code>:</p>
+<table>
+<thead>
+<tr>
+<th>OS</th>
+<th>Mechanism</th>
+<th>Key properties</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Windows</td>
+<td>Task Scheduler XML via <code>schtasks /Create /XML</code></td>
+<td>Log-on trigger + time trigger every 5 min, <code>MultipleInstancesPolicy=IgnoreNew</code>, <code>WakeToRun</code>, no execution time limit, runs on battery, restart on failure, <code>pythonw.exe</code> (no window)</td>
+</tr>
+<tr>
+<td>macOS</td>
+<td><code>~/Library/LaunchAgents/com.leadautomationpipeline.engine.plist</code></td>
+<td><code>RunAtLoad</code>, <code>KeepAlive</code></td>
+</tr>
+<tr>
+<td>Linux</td>
+<td><code>~/.config/systemd/user/leadpipe.service</code></td>
+<td><code>Restart=always</code>; <code>loginctl enable-linger</code> to survive logout</td>
+</tr>
+</tbody>
+</table>
+<p><code>--background</code> logs to <code>data/logs/leadpipe.log</code> (rotating, 5 × 5 MB) and prints nothing; <code>cli.main</code> replaces a
+missing <code>stdout</code>/<code>stderr</code> (pythonw) with <code>os.devnull</code>. While the engine runs, <code>keep_awake()</code> blocks system sleep
+(<code>SetThreadExecutionState</code> on Windows, <code>caffeinate -w &lt;pid&gt;</code> on macOS, <code>systemd-inhibit</code> on Linux).</p>
+<h3 id="live-settings">Live settings</h3>
+<p>The dashboard writes <code>config.yaml</code> with <code>config.save_settings()</code> (ruamel round-trip, comments kept) and <code>.env</code> with
+<code>config.save_env()</code>. <code>Config.reload_if_changed()</code> compares file mtimes and replaces <code>cfg.data</code> <strong>in place</strong>, so every
+module holding the same <code>Config</code> object sees the new values on the next cycle.</p>
+<hr />
+<h2 id="5-data-model">5. Data model</h2>
+<p>All tables are created in <code>db.SCHEMA</code>; columns added later are listed in <code>db.MIGRATIONS</code> and applied with
+<code>ALTER TABLE … ADD COLUMN</code> on every start, so old databases upgrade automatically.</p>
+<table>
+<thead>
+<tr>
+<th>Table</th>
+<th>Purpose</th>
+<th>Important columns</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>areas</code></td>
+<td>the rollout queue</td>
+<td><code>name</code>, <code>country</code>, <code>timezone</code>, <code>bbox</code> (JSON s,w,n,e), <code>position</code>, <code>status</code> (pending/active/done/skipped/failed), <code>tile</code>, <code>tiles</code>, <code>found</code></td>
+</tr>
+<tr>
+<td><code>companies</code></td>
+<td>one business</td>
+<td><code>website</code>, <code>domain</code>, <code>phone</code>, <code>whatsapp</code>, <code>instagram</code>, <code>linkedin</code>, <code>twitter</code>, <code>facebook</code>, <code>listed_email</code>, <code>rating</code>, <code>reviews</code>, <code>priority</code>, <code>signals</code> (JSON with evidence), <code>problems</code>, <code>score</code>, <code>status</code> (new/qualified/disqualified/error), <code>status_reason</code>, <code>area_id</code>, <code>timezone</code>, <code>tech</code>, <code>source</code>, <code>source_ref</code></td>
+</tr>
+<tr>
+<td><code>contacts</code></td>
+<td>a person (email) or a <code>social</code> contact (no email)</td>
+<td><code>email</code>, <code>email_status</code>, <code>channel</code>, <strong><code>stage</code></strong>, <strong><code>sequence</code></strong>, <strong><code>step</code></strong>, <code>next_action_at</code>, <code>mailbox</code>, <code>phone</code>, <code>call_attempts</code>, <code>lost_reason</code></td>
+</tr>
+<tr>
+<td><code>messages</code></td>
+<td>every outbound draft/task and inbound reply</td>
+<td><code>direction</code> (out/in), <code>channel</code>, <code>kind</code> (sequence/reply/onboarding/inbound), <code>status</code> (pending/approved/sent/failed/cancelled/rejected/received), <code>purpose</code>, <code>subject</code>, <code>body</code>, <code>check_issues</code> (JSON), <code>action_url</code>, <code>outcome</code>, <code>message_id</code>, <code>in_reply_to</code>, <code>mailbox</code>, <code>intent</code>, <code>needs_human</code>, <code>scheduled_for</code>, <code>sent_at</code></td>
+</tr>
+<tr>
+<td><code>deals</code></td>
+<td>won deals</td>
+<td><code>status</code> (onboarding/active), <code>value</code>, <code>currency</code>, <code>checklist</code> (JSON key→timestamp), <code>reminders</code></td>
+</tr>
+<tr>
+<td><code>suppression</code></td>
+<td>do-not-contact</td>
+<td><code>value</code>: email, <code>@domain</code>, phone digits/E.164, profile URL, or <code>sha256:&lt;hash&gt;</code> (erased person)</td>
+</tr>
+<tr>
+<td><code>events</code></td>
+<td>audit log shown in the UI</td>
+<td><code>ts</code>, <code>level</code>, <code>kind</code>, <code>message</code>, <code>contact_id</code>, <code>company_id</code></td>
+</tr>
+<tr>
+<td><code>seen_inbound</code></td>
+<td>inbound Message-IDs that matched no lead</td>
+<td></td>
+</tr>
+<tr>
+<td><code>kv</code></td>
+<td>runtime state (JSON values)</td>
+<td>see below</td>
+</tr>
+</tbody>
+</table>
+<p>Notable <code>kv</code> keys: <code>heartbeat</code>, <code>engine_paused</code>, <code>sending_paused</code>, <code>autopilot_cold</code>, <code>autopilot_replies</code>,
+<code>job:&lt;name&gt;</code>, <code>first_send_date[:&lt;mailbox&gt;]</code>, <code>next_send_at[:&lt;mailbox&gt;]</code>, <code>enrolled:&lt;date&gt;</code>, <code>llm_calls:&lt;date&gt;</code>,
+<code>last_discovery_at</code>, <code>last_inbox_at</code>, <code>digest:&lt;date&gt;</code>, <code>secret</code>, <code>flask_secret</code>.</p>
+<p><code>DB</code> helpers: <code>all</code>, <code>one</code>, <code>scalar</code>, <code>insert(table, dict)</code>, <code>update(table, id, dict)</code> (sets <code>updated_at</code>),
+<code>kv_get/kv_set</code>, <code>log(kind, message, level, contact_id, company_id)</code>. Times are ISO-8601 UTC strings
+(<code>db.now_iso()</code>, <code>iso()</code>, <code>parse_iso()</code>).</p>
+<hr />
+<h2 id="6-the-lead-lifecycle">6. The lead lifecycle</h2>
+<h3 id="stages-and-tracks-pipelinepy">Stages and tracks (<code>pipeline.py</code>)</h3>
+<pre><code>new ──enroll──▶ cold (email) / cold_social (no email)
+                 │
+                 ├─ interested ──▶ warm track ──booked──▶ meeting ──(next day)──▶ proposal track
+                 │                                                                   │
+                 │                                                     YES ──▶ won (onboarding) ──▶ client (client_care)
+                 ├─ not now / have someone ──▶ nurture (30/60/90 days) ──▶ lost
+                 ├─ no ──▶ lost          ├─ stop ──▶ unsubscribed          ├─ bounce ──▶ bounced
+                 └─ no reply after the whole track ──▶ lost
+</code></pre>
+<p><code>STAGE_SEQUENCE</code> maps a stage to its track; <code>sequence_for(stage, contact)</code> sends no-email leads to <code>cold_social</code>.
+Tracks are defined in <code>config.yaml → sequences</code> as steps <code>{day, purpose, channel}</code> plus <code>on_complete</code>
+(<code>lost</code>/<code>nurture</code>/<code>none</code>) and <code>close_after_days</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>set_stage(db, cfg, contact_id, stage, reason, start_at=None, first_delay_days=None)</code></td>
+<td>cancels queued sequence messages (all queued messages for terminal stages), sets the new track at step 0 with <code>next_action_at = start + steps[0].day</code>, suppresses on unsubscribe/bounce, logs</td>
+</tr>
+<tr>
+<td><code>advance_after_send(db, cfg, message)</code></td>
+<td>after a step was sent/done: <code>step += 1</code>, next date = now + (day gap to the next step); after the last step, now + <code>close_after_days</code></td>
+</tr>
+<tr>
+<td><code>skip_step(db, cfg, contact, reason)</code></td>
+<td>move past a step that can't happen (no channel, score too low), keeping the spacing</td>
+</tr>
+<tr>
+<td><code>process_timers(db, cfg)</code></td>
+<td>finished tracks → <code>on_complete</code>; <code>meeting</code> → <code>proposal</code> after the call date</td>
+</tr>
+<tr>
+<td><code>enroll_new_contacts(db, cfg)</code></td>
+<td>qualified <code>new</code> contacts → <code>cold</code>, up to <code>sending.new_leads_per_day</code>, high-value and high-score first</td>
+</tr>
+<tr>
+<td><code>pause_colleagues</code>, <code>delay_next_action</code>, <code>suppress</code>, <code>is_suppressed</code>, <code>cancel_pending</code></td>
+<td>helpers</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="7-discovery-finding-businesses">7. Discovery: finding businesses</h2>
+<h3 id="areas-discovery__init__py">Areas (<code>discovery/__init__.py</code>)</h3>
+<ul>
+<li><code>seed_areas(db, cfg)</code> builds the queue (idempotent): <code>reach.start_area</code>, <code>reach.next_areas</code>, then, if
+  <code>reach.world_rollout</code>, the home country's cities from <code>geo.WORLD_CITIES</code>, then each country in <code>reach.countries</code>.
+  Countries in <code>reach.skip_countries</code> or <code>compliance.restricted_countries</code> are inserted as <code>skipped</code>.</li>
+<li><code>current_area(db)</code> returns the <code>active</code> area or activates the next <code>pending</code> one.</li>
+<li><code>run_discovery(db, cfg, area_name=None, steps=1)</code>: geocodes the area once (<code>osm.locate_area</code> → bbox, country;
+  <code>geo.timezone_for</code> → timezone), splits the bbox into an n×n grid (<code>tile_bbox</code>, n² = <code>reach.tiles_per_area</code>) and
+  searches <strong>one tile per step</strong>. OSM searches the tile; Serper/Google search the whole area on tile 0. When the last
+  tile is done the area becomes <code>done</code> and the next one is activated on the next call.</li>
+<li><code>discovery_due()</code> = <code>reach.auto_discover</code> and the time gap and <code>fresh_leads() &lt; reach.min_ready_leads</code>.</li>
+<li><code>save_company(db, data)</code> dedupes by (<code>source</code>, <code>source_ref</code>), website domain, or name+city, and merges new details
+  (phones, socials, ratings, priority) into an existing row. Social-media "websites" are moved into the social fields.</li>
+</ul>
+<h3 id="sources">Sources</h3>
+<table>
+<thead>
+<tr>
+<th>Module</th>
+<th>Function</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>osm.py</code></td>
+<td><code>locate_area</code>, <code>build_bbox_query</code>, <code>search_tile</code>, <code>parse_elements</code>, <code>tags_for</code></td>
+<td>Nominatim (1 req/s, identifying User-Agent) + Overpass with a fallback server; <code>CATEGORY_TAGS</code> maps plain words to OSM tags, raw <code>key=value</code> accepted</td>
+</tr>
+<tr>
+<td><code>serper.py</code></td>
+<td><code>discover_serper</code></td>
+<td><code>SERPER_API_KEY</code>; Google Maps places with rating/reviews</td>
+</tr>
+<tr>
+<td><code>google_places.py</code></td>
+<td><code>discover_google</code></td>
+<td><code>GOOGLE_PLACES_API_KEY</code>; Places Text Search (New) with field mask</td>
+</tr>
+<tr>
+<td><code>csv_import.py</code></td>
+<td><code>import_csv</code>, <code>map_headers</code>, <code>sheet_csv_url</code>, <code>fetch_sheet</code>, <code>sync_sheets</code></td>
+<td>loose header matching incl. Maps-scraper names (<code>title</code>, <code>totalScore</code>, <code>reviewsCount</code>, <code>categoryName</code>, <code>url</code>); Google Sheets link → CSV export; phone normalisation; <code>priority</code></td>
+</tr>
+</tbody>
+</table>
+<p>Each source returns plain dicts with: <code>name, category, website, phone, email, address, city, country, instagram,
+facebook, linkedin, twitter, whatsapp, rating, reviews, lat, lon, maps_url, source, source_ref</code>.</p>
+<hr />
+<h2 id="8-research-scoring-and-qualification">8. Research, scoring and qualification</h2>
+<h3 id="website-audit-enrichwebsitepy">Website audit (<code>enrich/website.py</code>)</h3>
+<p><code>audit_website(url, timeout, max_pages)</code> → <code>SiteAudit(signals, emails, people, socials, phones, tech, summary, …)</code>.
+It fetches the homepage, then up to <code>max_pages-1</code> internal pages ranked by <code>SUBPAGE_RANK</code> (contact, team, about…,
+careers, blog). Charset is detected when the server doesn't declare one.</p>
+<table>
+<thead>
+<tr>
+<th>Signal key</th>
+<th>Detection</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>no_website</code>, <code>instagram_only</code></td>
+<td>no URL / URL is a social or directory page</td>
+</tr>
+<tr>
+<td><code>site_broken</code>, <code>no_https</code>, <code>slow_site</code></td>
+<td>request error or HTTP ≥ 400; final URL is http; &gt; 3 s</td>
+</tr>
+<tr>
+<td><code>not_mobile_friendly</code>, <code>outdated_site</code>, <code>weak_seo</code></td>
+<td>no viewport meta; latest © year &lt; now−2; missing title/description</td>
+</tr>
+<tr>
+<td><code>no_online_booking</code>, <code>no_contact_form</code>, <code>no_live_chat</code>, <code>no_analytics</code>, <code>running_ads</code></td>
+<td>keyword/script lists (<code>BOOKING_HINTS</code>, form inputs, <code>CHAT_HINTS</code>, <code>ANALYTICS_HINTS</code>, <code>ADS_HINTS</code>)</td>
+</tr>
+<tr>
+<td><code>diy_builder</code>, <code>agency_built</code>, <code>no_schema_markup</code>, <code>blog_stale</code></td>
+<td><code>TECH_HINTS</code>; footer credit ("Website by X", <code>find_agency</code>); no JSON-LD/itemtype; newest date on a blog page</td>
+</tr>
+<tr>
+<td><code>hiring</code></td>
+<td>careers hints, or open roles from Greenhouse/Lever/Ashby/Workable public feeds (<code>ats_roles</code>)</td>
+</tr>
+<tr>
+<td><code>startup_backed</code>, <code>recently_funded</code></td>
+<td>the company's own words (<code>STARTUP_RE</code>, <code>FUNDING_RE</code>)</td>
+</tr>
+<tr>
+<td><code>low_rating</code>, <code>few_reviews</code></td>
+<td>from listing data (<code>enrich.reputation_signals</code>): &lt; 4.0★, &lt; 15 reviews</td>
+</tr>
+</tbody>
+</table>
+<p>Also extracted: emails (mailto, Cloudflare <code>data-cfemail</code>, <code>[at]</code>/<code>[dot]</code>), people (name–role patterns, JSON-LD
+<code>founder</code>/<code>employee</code>, "Dr." names), social links (<code>channels.extract_socials</code>), <code>tel:</code> numbers, tech stack.</p>
+<h3 id="emails-enrichpatternspy-enrichverifypy">Emails (<code>enrich/patterns.py</code>, <code>enrich/verify.py</code>)</h3>
+<ul>
+<li><code>learn_pattern(emails, people, domain)</code> finds the format that explains a published address of a named person
+  (<code>first.last</code>, <code>flast</code>, <code>firstl</code>…); <code>apply_pattern</code> builds the owner's address and returns <code>None</code> if another
+  named person would get the same one.</li>
+<li><code>verify_email(email, cfg, guessed=False, pattern=False)</code> → <code>valid</code> / <code>risky</code> (role inbox) / <code>pattern</code> / <code>guess</code> /
+  <code>invalid</code>, via syntax, disposable/placeholder lists, MX (or A) records, optional Hunter API and optional SMTP probe.
+  <code>is_sendable(status, cfg)</code> applies <code>allow_role_emails</code>, <code>allow_pattern_emails</code>, <code>allow_guessed_emails</code>.</li>
+</ul>
+<h3 id="enrich_companydb-cfg-company-llmnone-auditnone"><code>enrich_company(db, cfg, company, llm=None, audit=None)</code></h3>
+<ol>
+<li>audit (or use the given <code>audit</code>, which is how tests inject data); add reputation signals; filter <code>hiring</code> by <code>enrichment.hiring_roles</code></li>
+<li>fill missing phone/socials/tech on the company</li>
+<li>contacts (max <code>max_contacts_per_company</code>): owner's published address → owner's pattern address → other published addresses → optional blind guess</li>
+<li>no usable email but a phone/profile → one <code>social</code> contact</li>
+<li><code>score_company</code>: Σ signal weights + 10 named person + 5 valid email + <code>priority_bonus</code></li>
+<li>optional AI summary of the two main problems</li>
+<li>qualify: restricted country / unreachable / score &lt; <code>min_score</code> (unless priority) → <code>disqualified</code> (contacts → <code>lost</code>)</li>
+</ol>
+<p><code>rescore_all(db, cfg)</code> re-applies scoring after settings change: re-qualifies leads, sets aside untouched leads that no
+longer fit (or whose OSM category is no longer in <code>reach.business_types</code>) and cancels their waiting messages.</p>
+<hr />
+<h2 id="9-channels-and-the-to-do-tasks">9. Channels and the To-do tasks</h2>
+<h3 id="channelspy"><code>channels.py</code></h3>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>parse_phone(raw, country)</code></td>
+<td><code>phonenumbers</code> → <code>{e164, display, mobile, country}</code></td>
+</tr>
+<tr>
+<td><code>extract_socials(urls)</code></td>
+<td>canonical Instagram/Facebook/LinkedIn/X URLs and WhatsApp numbers; share/intent links ignored</td>
+</tr>
+<tr>
+<td><code>available(company, contact, cfg)</code></td>
+<td><code>{channel: target}</code> for enabled channels; mobile numbers (or a WhatsApp link) enable WhatsApp</td>
+</tr>
+<tr>
+<td><code>pick_channel(step_channel, avail, cfg)</code></td>
+<td><code>email</code> → falls back to a DM; <code>dm</code>/<code>auto</code> → first of <code>channels.dm_order</code>, then <code>call</code>; a specific app → that app or a DM fallback</td>
+</tr>
+<tr>
+<td><code>action_url(channel, target, text)</code></td>
+<td><code>wa.me/&lt;n&gt;?text=…</code>, <code>ig.me/m/&lt;h&gt;</code>, <code>m.me/&lt;h&gt;</code>, <code>tel:</code>, <code>mailto:</code>, profile URL</td>
+</tr>
+</tbody>
+</table>
+<h3 id="writerwrite_due-channel-rules"><code>writer.write_due</code> channel rules</h3>
+<p>For each due step: resolve the channel; if none → <code>skip_step</code>. For non-email channels on leads that <em>have</em> email
+(extra touches): require score ≥ <code>channels.min_score_for_tasks</code> or <code>priority</code>, else skip. Respect
+<code>channels.tasks_per_day</code> (excess is postponed ~20 h). Non-email messages are stored with <code>channel</code>, <code>to_addr</code>
+(target) and <code>action_url</code>; <strong>they are never sent by code</strong>.</p>
+<h3 id="taskspy"><code>tasks.py</code></h3>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>todo(db, cfg)</code></td>
+<td>sections <code>replies</code>, <code>decide</code>, <code>calls</code>, <code>messages</code>, <code>emails</code>, <code>clients</code>, ordered by priority/score</td>
+</tr>
+<tr>
+<td><code>done(db, cfg, message_id, body=None)</code></td>
+<td>DM sent by the user → <code>sent</code> + <code>advance_after_send</code></td>
+</tr>
+<tr>
+<td><code>skip(db, cfg, message_id)</code></td>
+<td>cancel and advance</td>
+</tr>
+<tr>
+<td><code>call_outcome(db, cfg, message_id, outcome, notes)</code></td>
+<td><code>no_answer</code> (retry next day until <code>call_attempts</code>), <code>voicemail</code>, <code>wrong_number</code> (removes phone), or a real answer → <code>handler.apply_intent</code> with the matching intent</td>
+</tr>
+<tr>
+<td><code>log_reply(db, cfg, contact_id, text, intent=None, channel=…)</code></td>
+<td>a reply received outside email, handled like an email reply, answer drafted on the same channel</td>
+</tr>
+<tr>
+<td><code>export_call_list(db, cfg)</code></td>
+<td>calls due today as rows (for <code>leadpipe export --calls</code>)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="10-writing-messages">10. Writing messages</h2>
+<h3 id="context-writerbuild_context">Context (<code>writer.build_context</code>)</h3>
+<p>Turns company + contact + profile into template variables: <code>greeting</code>, <code>first_or_team</code>, <code>company</code>, <code>website</code>,
+<code>category_plural</code>, <code>service</code>, <code>starter_offer</code>, <code>price_range</code>, <code>quick_win</code> (adapted for no-website leads),
+<code>proof_line</code> (empty without proof: <strong>nothing is claimed</strong>), and from the top two signals (by weight):
+<code>obs1/obs2</code> (observation), <code>cost1/cost2</code>, <code>fix1/fix2</code>, <code>problem1</code>, <code>topic1</code>, plus call-script fields
+(<code>phone_line</code>, <code>online_presence</code>, <code>business_name</code>). Service-type wording overrides come from <code>presets.override()</code>.</p>
+<h3 id="templates-templatespy">Templates (<code>templates.py</code>)</h3>
+<table>
+<thead>
+<tr>
+<th>Object</th>
+<th>Content</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SIGNALS</code></td>
+<td>per signal: <code>label</code>, <code>explain</code>, <code>problem</code>, <code>observation</code>, <code>cost</code>, <code>fix</code>, <code>topic</code></td>
+</tr>
+<tr>
+<td><code>SEQUENCE_TEMPLATES</code></td>
+<td>per purpose: list of <code>(subject or None, body)</code> variants; <code>None</code> = reply in the same thread</td>
+</tr>
+<tr>
+<td><code>CALL_TEMPLATES</code></td>
+<td><code>call_intro</code>, <code>call_followup</code> scripts</td>
+</tr>
+<tr>
+<td><code>REPLY_TEMPLATES</code></td>
+<td>Closer answers per intent</td>
+</tr>
+<tr>
+<td><code>ONBOARDING_TEMPLATES</code></td>
+<td>contract, invoice, welcome, access, portal, reminders</td>
+</tr>
+</tbody>
+</table>
+<p><code>pick(variants, seed)</code> chooses a variant deterministically per contact (a new seed on "rewrite"); <code>fill()</code> never leaves
+placeholders (missing keys render empty).</p>
+<h3 id="service-types-presetspy">Service types (<code>presets.py</code>)</h3>
+<p><code>PRESETS[type]</code> = <code>weights</code> (signal weights), <code>fixes</code>/<code>costs</code> (wording overrides), <code>quick_win_no_site</code>. When
+<code>profile.service_type</code> is not <code>website</code>/<code>custom</code> and the user config has no <code>signals:</code>, <code>load_config</code> applies the
+preset's weights. The dashboard writes the weights into <code>config.yaml</code> when the type changes.</p>
+<h3 id="drafting-writer">Drafting (<code>Writer</code>)</h3>
+<p><code>sequence_draft(contact, company, purpose, extra, seed, channel)</code>: call → <code>CALL_TEMPLATES</code>; DM → maps email purposes to
+DM purposes (<code>DM_EQUIVALENT</code>); otherwise AI first (<code>_ai_draft</code>: facts + purpose brief + thread history + word limit,
+JSON schema <code>{subject, body}</code>), re-checked by <code>compliance.check_message</code> and retried once with the failures; falls back
+to the template. <code>reply_draft</code> (Closer) and <code>onboarding_draft</code> work the same way. <code>queue_message(...)</code> stores the draft
+with its check results, channel, target and action URL; <code>auto_ok</code> approves passing emails (autopilot).
+<code>regenerate()</code> rewrites one draft; <code>rewrite_waiting()</code> rewrites all unsent outreach.</p>
+<h3 id="safety-checks-compliancecheck_message">Safety checks (<code>compliance.check_message</code>)</h3>
+<p>Returns issues <code>{level: block|warn, rule, detail}</code>: unfilled placeholders, banned phrases (spam/AI clichés + your own),
+length per purpose (<code>WORD_LIMITS</code>), links (0 in a first message), price in a first message, misleading <code>Re:</code>/<code>Fwd:</code>,
+shouting, missing company name or question. Call scripts are only checked for placeholders. <code>compliance.footer()</code> adds
+signature, postal address, opt-out line and unsubscribe URL <strong>at send time</strong>.</p>
+<hr />
+<h2 id="11-sending-email">11. Sending email</h2>
+<p><code>mailboxes.mailboxes(cfg)</code> returns the main mailbox (from <code>.env</code>) plus <code>config.yaml → mailboxes</code> (password from
+<code>password_env</code>). <code>sender.send_due(db, cfg, mailer, now, respect_timing=True, max_send=1)</code>:</p>
+<ol>
+<li>stop if <code>sending_paused</code></li>
+<li>order mailboxes by remaining capacity; for each: skip if inside its random gap</li>
+<li>per approved, due email (priority: replies &gt; onboarding &gt; follow-ups &gt; first emails):
+   hard checks (<code>_hard_check</code>: address present &amp; sendable, not suppressed, contact not closed, still on this step;
+   a courtesy reply to a "no" is allowed) → mailbox ownership (a lead stays with its mailbox) → new-lead quota →
+   recipient office hours → one company per day → re-run compliance → build → send</li>
+<li>on success: store <code>message_id</code>, <code>mailbox</code>, pin the contact to the mailbox, set warm-up start, advance the track,
+   set the next random gap; on <code>SMTPRecipientsRefused</code> → bounced; on other errors → <code>failed</code> + 15-minute back-off</li>
+</ol>
+<p><code>todays_cap(db, cfg, now, mailbox)</code> = min(cap, <code>start_per_day + increase_per_day × days since first send</code>).
+<code>build_email()</code> sets From/To/Subject/Date/Message-ID, threads follow-ups (<code>In-Reply-To</code>, <code>References</code>) and adds
+<code>List-Unsubscribe</code> (mailto, plus one-click URL when <code>dashboard.public_base_url</code> is set). <code>Mailer.send()</code> writes <code>.eml</code>
+files in <code>dry_run</code> mode, else SMTP (<code>starttls</code>/<code>ssl</code>/none).</p>
+<hr />
+<h2 id="12-reading-and-handling-replies">12. Reading and handling replies</h2>
+<ul>
+<li><code>inbox.fetch_new()</code> reads every mailbox with IMAP settings, folders from <code>IMAP_FOLDERS</code>, last 4 days, <strong>read-only</strong>
+  (<code>BODY.PEEK</code>), skipping Message-IDs already stored. <code>parse_message()</code> extracts plain text (HTML fallback), headers
+  needed for auto-reply detection, and DSN failed recipients.</li>
+<li><code>handler.match_contact()</code>: <code>In-Reply-To</code>/<code>References</code> → DSN recipients → sender address → same company domain
+  (creates a colleague contact). Unmatched mail is marked seen and ignored.</li>
+<li><code>classifier.classify()</code>: deterministic rules first for <strong>bounce, auto-reply, unsubscribe</strong> (safety-critical), then
+  AI (confidence ≥ 0.5) or keyword rules. Quoted history is stripped. <code>followup_days()</code> reads "in 2 months" etc.</li>
+<li><code>handler.apply_intent(db, cfg, contact, mail, result, writer, channel_hint=None)</code> stores the inbound message, stops
+  the lead's sequence (and colleagues' cold outreach), changes stage, drafts the answer (email, or the DM channel the lead
+  uses), creates referral contacts, and notifies for hot intents.</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Intent</th>
+<th>Transition</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>interested</code>, <code>price_question</code>, <code>portfolio_request</code>, <code>timeline_question</code>, <code>question</code>, <code>referral</code></td>
+<td>→ <code>interested</code> (warm track)</td>
+</tr>
+<tr>
+<td><code>meeting_booked</code></td>
+<td>→ <code>meeting</code></td>
+</tr>
+<tr>
+<td><code>proposal_request</code>, <code>ready_to_buy</code></td>
+<td>→ <code>proposal</code> (ready_to_buy: chasers stopped, needs the user to mark WON)</td>
+</tr>
+<tr>
+<td><code>not_now</code> / <code>already_have</code></td>
+<td>→ <code>nurture</code> (first check-in after their delay / 90 days)</td>
+</tr>
+<tr>
+<td><code>not_interested</code></td>
+<td>→ <code>lost</code> + suppress + optional courtesy reply</td>
+</tr>
+<tr>
+<td><code>unsubscribe</code> / <code>bounce</code> / <code>auto_reply</code></td>
+<td>→ <code>unsubscribed</code> / <code>bounced</code> / push next step by <code>ooo_delay_days</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="13-client-onboarding">13. Client onboarding</h2>
+<p><code>onboarding.start(db, cfg, contact_id, value, currency)</code> creates the deal and moves the contact to <code>won</code>
+(colleagues are paused). <code>CHECKLIST</code> = <code>(key, label, who)</code>; <code>who="auto"</code> items tick themselves when the matching email
+is sent (<code>SENT_FLAG</code>), <code>who="you"</code> items are ticked in the UI (<code>set_step</code>). <code>tick()</code> drafts the next email in order
+(contract → invoice → welcome → access request → portal) and reminders every <code>reminder_every_days</code> (max
+<code>max_reminders</code>); when the portal email is sent, <code>deal_done()</code> moves the contact to <code>client</code> (client-care track).</p>
+<hr />
+<h2 id="14-the-ai-layer">14. The AI layer</h2>
+<p><code>llm.LLM(cfg)</code> picks a provider: <code>anthropic</code> (API key), <code>claude_cli</code> (the <code>claude</code> command, uses the user's Claude
+plan) or <code>none</code>; <code>auto</code> prefers the API key, then the CLI. <code>LLM.json(system, prompt, schema, effort)</code> returns a dict or
+<code>None</code> (never raises).</p>
+<ul>
+<li><strong>API:</strong> <code>client.beta.messages.create(model=llm.model, output_config={effort, format: json_schema}, betas=[server-side
+  fallback], fallbacks="default")</code>, falling back to the standard endpoint on a 400; checks <code>stop_reason</code> for refusal and
+  truncation. Default model <code>claude-opus-5-5</code>.</li>
+<li><strong>CLI:</strong> <code>claude -p --output-format text</code> with every isolation flag the installed version supports
+  (<code>--safe-mode</code>, <code>--tools ""</code>, <code>--setting-sources ""</code>, <code>--strict-mcp-config</code>, <code>--no-session-persistence</code>,
+  <code>--disable-slash-commands</code>), run in an empty temporary directory with the prompt on stdin; JSON is extracted from the output.</li>
+<li><strong>Budget:</strong> <code>attach_db(db)</code> enables <code>llm.max_calls_per_day</code> (counter in <code>kv</code>).</li>
+</ul>
+<hr />
+<h2 id="15-the-dashboard">15. The dashboard</h2>
+<p><code>dashboard/app.py → create_app(cfg, db, engine=None)</code> (Flask). Pages: <code>/</code> Home, <code>/todo</code>, <code>/leads</code> (+ <code>/leads/researching</code>),
+<code>/lead/&lt;id&gt;</code>, <code>/company/&lt;id&gt;</code>, <code>/clients</code>, <code>/insights</code>, <code>/settings?tab=setup|reach|automation|import|dnc</code>.
+Actions are <code>POST</code>s: <code>/todo/&lt;id&gt;/&lt;send|save|done|rewrite|skip|discard|stop|call&gt;</code>, <code>/todo/approve-all</code>,
+<code>/todo/client/&lt;id&gt;</code>, <code>/lead/&lt;id&gt;/&lt;action&gt;</code>, <code>/settings/setup</code>, <code>/settings/toggle/&lt;key&gt;</code>, <code>/settings/area…</code>,
+<code>/settings/import</code>, <code>/settings/suppress</code>, <code>/engine/&lt;pause|resume|install|uninstall&gt;</code>, <code>/run/&lt;job&gt;</code>.</p>
+<p><strong>Security:</strong> <code>before_request</code> enforces HTTP Basic auth when <code>DASHBOARD_PASSWORD</code> is set (required for non-localhost
+hosts, <code>serve()</code> refuses otherwise) and a per-session CSRF token on every POST. Public endpoints: <code>/health</code>,
+<code>/u/&lt;token&gt;</code> (HMAC-signed unsubscribe, RFC 8058 one-click POST) and <code>/webhooks/booking?token=</code> (Cal.com/Calendly:
+any attendee email → <code>meeting</code>).</p>
+<p><strong>Templates</strong> (<code>dashboard/templates/</code>): <code>base.html</code> (nav, status, copy-to-clipboard script), one file per page.
+Context helpers: <code>status</code>, <code>todo_count</code>, <code>PLAIN_STAGE</code>, <code>LABELS</code>, <code>ICONS</code>, filters <code>ago</code>, <code>short</code>, <code>evidence</code>.
+<strong>Adding a page:</strong> add a route in <code>create_app</code>, a template extending <code>base.html</code>, and a nav link.</p>
+<hr />
+<h2 id="16-configuration-reference">16. Configuration reference</h2>
+<p><code>default_config.yaml</code> documents every key; the user's <code>config.yaml</code> is deep-merged over it (lists replace).
+<code>_upgrade_old_keys</code> converts 1.0 settings (<code>targets</code>, <code>discovery</code>).</p>
+<table>
+<thead>
+<tr>
+<th>Section</th>
+<th>Key settings</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>profile</code></td>
+<td><code>your_name</code>, <code>business_name</code>, <code>website</code>, <code>service_type</code>, <code>service</code>, <code>service_long</code>, <code>starter_offer</code>, <code>price_range</code>, <code>delivery_time</code>, <code>proof</code>, <code>proof_by_category</code>, <code>proof_links</code>, <code>quick_win</code>, <code>quick_win_no_site</code>, <code>booking_link</code>, <code>signature</code>, <code>physical_address</code></td>
+</tr>
+<tr>
+<td><code>reach</code></td>
+<td><code>auto_discover</code>, <code>business_types</code>, <code>start_area</code>, <code>next_areas</code>, <code>world_rollout</code>, <code>countries</code>, <code>skip_countries</code>, <code>tiles_per_area</code>, <code>results_per_search</code>, <code>min_ready_leads</code></td>
+</tr>
+<tr>
+<td><code>sources</code></td>
+<td><code>providers</code> (osm/serper/google_places), <code>google_sheets</code>, <code>sheet_sync_hours</code></td>
+</tr>
+<tr>
+<td><code>enrichment</code></td>
+<td><code>per_cycle</code>, <code>request_timeout</code>, <code>max_pages_per_site</code>, <code>max_contacts_per_company</code>, <code>allow_role_emails</code>, <code>allow_pattern_emails</code>, <code>allow_guessed_emails</code>, <code>smtp_probe</code>, <code>min_score</code>, <code>priority_bonus</code>, <code>hiring_roles</code></td>
+</tr>
+<tr>
+<td><code>signals</code></td>
+<td>weight per signal key</td>
+</tr>
+<tr>
+<td><code>channels</code></td>
+<td><code>enabled</code>, <code>dm_order</code>, <code>tasks_per_day</code>, <code>min_score_for_tasks</code>, <code>call_attempts</code></td>
+</tr>
+<tr>
+<td><code>sending</code></td>
+<td><code>mode</code> (dry_run/smtp), <code>daily_cap</code>, <code>warmup.{enabled,start_date,start_per_day,increase_per_day}</code>, <code>new_leads_per_day</code>, <code>office_hours.{start,end,days}</code>, <code>min_gap_minutes</code>, <code>max_gap_minutes</code>, <code>one_company_per_day</code></td>
+</tr>
+<tr>
+<td><code>mailboxes</code></td>
+<td>extra mailboxes <code>{name, email, from_name, smtp_*, imap_*, password_env, daily_cap, warmup_start_date}</code></td>
+</tr>
+<tr>
+<td><code>approval</code></td>
+<td><code>autopilot_cold</code>, <code>autopilot_replies</code>, <code>draft_ahead_hours</code></td>
+</tr>
+<tr>
+<td><code>sequences</code></td>
+<td>tracks: <code>cold</code>, <code>cold_social</code>, <code>warm</code>, <code>proposal</code>, <code>nurture</code>, <code>client_care</code> → <code>steps[{day, purpose, channel}]</code>, <code>on_complete</code>, <code>close_after_days</code></td>
+</tr>
+<tr>
+<td><code>onboarding</code></td>
+<td><code>contract_link</code>, <code>payment_link</code>, <code>welcome_doc_link</code>, <code>kickoff_link</code>, <code>portal_link</code>, <code>reminder_every_days</code>, <code>max_reminders</code>, <code>access_items</code></td>
+</tr>
+<tr>
+<td><code>replies</code>, <code>notifications</code></td>
+<td><code>ooo_delay_days</code>, <code>reply_to_not_interested</code>, <code>stop_company_on_reply</code>; <code>owner_email</code>, <code>daily_digest_hour</code></td>
+</tr>
+<tr>
+<td><code>llm</code></td>
+<td><code>provider</code>, <code>model</code>, <code>cli_model</code>, <code>effort_writing</code>, <code>effort_classify</code>, <code>timeout_seconds</code>, <code>max_calls_per_day</code></td>
+</tr>
+<tr>
+<td><code>compliance</code></td>
+<td><code>include_address</code>, <code>opt_out_line</code>, <code>restricted_countries</code>, <code>max_links_first_email</code>, <code>max_links_followup</code>, <code>extra_banned_phrases</code></td>
+</tr>
+<tr>
+<td><code>engine</code>, <code>dashboard</code></td>
+<td><code>timezone</code>, <code>tick_seconds</code>, <code>*_every_minutes</code>, <code>keep_awake</code>; <code>host</code>, <code>port</code>, <code>public_base_url</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Environment (<code>.env</code>):</strong> <code>FROM_EMAIL</code>, <code>FROM_NAME</code>, <code>REPLY_TO</code>, <code>SMTP_HOST/PORT/SECURITY/USER/PASSWORD</code>,
+<code>IMAP_HOST/PORT/USER/PASSWORD/FOLDERS</code>, <code>ANTHROPIC_API_KEY</code>, <code>SERPER_API_KEY</code>, <code>GOOGLE_PLACES_API_KEY</code>,
+<code>HUNTER_API_KEY</code>, <code>NOTIFY_WEBHOOK_URL</code>, <code>TELEGRAM_BOT_TOKEN</code>, <code>TELEGRAM_CHAT_ID</code>, <code>DASHBOARD_PASSWORD</code>,
+<code>LEADPIPE_SECRET</code>, <code>BOOKING_WEBHOOK_TOKEN</code>, extra mailbox passwords; plus <code>LEADPIPE_CONFIG</code>, <code>LEADPIPE_DATA_DIR</code>, <code>LEADPIPE_DB</code>.</p>
+<hr />
+<h2 id="17-command-line-interface">17. Command-line interface</h2>
+<p><code>cli.build_parser()</code> defines every command; each maps to a <code>cmd_*</code> function that loads the config and database
+(<code>_ctx(args)</code>). Groups: setup (<code>init</code>, <code>doctor</code>, <code>train</code>, <code>demo</code>, <code>signals</code>, <code>categories</code>), running (<code>start</code>, <code>run</code>,
+<code>dashboard</code>, <code>service</code>, <code>open</code>), pipeline steps (<code>discover</code>, <code>areas</code>, <code>import</code>, <code>enrich</code>, <code>write</code>, <code>send</code>, <code>inbox</code>,
+<code>outbox</code>), leads (<code>leads</code>, <code>contacts</code>, <code>stage</code>, <code>won</code>, <code>onboard</code>, <code>stats</code>, <code>export</code>), switches (<code>sending</code>, <code>autopilot</code>),
+privacy (<code>suppress</code>, <code>forget</code>) and testing (<code>simulate-reply</code>). Add a command by writing <code>cmd_x(args)</code> and registering
+a sub-parser with <code>set_defaults(fn=cmd_x)</code>.</p>
+<hr />
+<h2 id="18-extending-recipes">18. Extending: recipes</h2>
+<table>
+<thead>
+<tr>
+<th>Goal</th>
+<th>Steps</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>New lead source</strong></td>
+<td>add <code>discovery/&lt;name&gt;.py</code> returning the source dicts (§7); call it in <code>run_discovery</code> for its provider name; document the key in <code>.env.example</code> and <code>default_config.yaml</code></td>
+</tr>
+<tr>
+<td><strong>New signal</strong></td>
+<td>detect it in <code>enrich/website.py</code> (put evidence in <code>audit.signals[key]</code>); add copy to <code>templates.SIGNALS</code> and a phrase to <code>TOPICS</code>; add a default weight in <code>default_config.yaml</code> and in relevant <code>presets.PRESETS</code></td>
+</tr>
+<tr>
+<td><strong>New follow-up step type</strong></td>
+<td>add variants to <code>SEQUENCE_TEMPLATES</code> (or <code>CALL_TEMPLATES</code>), a brief to <code>writer.PURPOSE_BRIEFS</code>, a limit to <code>compliance.WORD_LIMITS</code>; use it in <code>sequences:</code></td>
+</tr>
+<tr>
+<td><strong>New reply intent</strong></td>
+<td>add to <code>classifier.INTENTS</code> and its rules (and the AI schema enum), an answer to <code>REPLY_TEMPLATES</code>, a transition in <code>handler.apply_intent</code></td>
+</tr>
+<tr>
+<td><strong>New channel</strong></td>
+<td>extend <code>channels.ALL_CHANNELS</code>/<code>LABELS</code>/<code>ICONS</code>, <code>available()</code>, <code>action_url()</code>, <code>pick_channel()</code>; it then appears in tasks automatically</td>
+</tr>
+<tr>
+<td><strong>New service type</strong></td>
+<td>add an entry to <code>presets.PRESETS</code> (label, weights, fixes, costs, quick_win_no_site)</td>
+</tr>
+<tr>
+<td><strong>New dashboard page</strong></td>
+<td>route in <code>create_app</code>, template extending <code>base.html</code>, nav link</td>
+</tr>
+<tr>
+<td><strong>New engine job</strong></td>
+<td>a function <code>(db, cfg, …) -&gt; int</code>; schedule it in <code>Engine.cycle</code> with <code>self._due(name, minutes)</code> / <code>self._run</code> / <code>self._mark</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="19-testing">19. Testing</h2>
+<pre><code class="language-bash">pytest                         # everything
+pytest tests/test_v11_features.py -k rollout -q
+pytest --durations=5           # find slow tests
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Covers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>test_rules.py</code></td>
+<td>compliance checks, footer, classifier cases, quoted text, DSN bounce parsing, verification</td>
+</tr>
+<tr>
+<td><code>test_audit.py</code></td>
+<td>website audit against a local HTTP server (<code>fixtures/site/</code>), Cloudflare decoding, enrichment ranking</td>
+</tr>
+<tr>
+<td><code>test_end_to_end.py</code></td>
+<td>full journey to client, no-reply → lost, not-now → nurture, unsubscribe, courtesy reply, sender guards</td>
+</tr>
+<tr>
+<td><code>test_dashboard.py</code></td>
+<td>every page renders, CSRF, password, unsubscribe link, booking webhook</td>
+</tr>
+<tr>
+<td><code>test_v11_features.py</code></td>
+<td>channels, world rollout (mocked map), Maps import → WhatsApp task, patterns, multiple mailboxes, call outcomes, task quotas, service files, settings writer, old-config upgrade, setup form, service types, honest no-proof copy</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Fixtures (<code>tests/conftest.py</code>):</strong> <code>cfg</code> writes a test <code>config.yaml</code> (AI off, test mode), sets <code>LEADPIPE_DATA_DIR</code> to a
+temp folder, clears secrets from the environment and <strong>stubs DNS</strong> (<code>verify.mx_hosts</code>) so no network is used; <code>db</code>
+opens a fresh database. Inject research results with <code>enrich_company(..., audit=SiteAudit(...))</code>; simulate replies
+with <code>handler.simulate_reply</code>; move time with the <code>time_travel()</code> helper in <code>test_end_to_end.py</code>; send with
+<code>send_due(..., respect_timing=False)</code> (dry-run <code>.eml</code> files land in the temp data folder). Tests must never call the
+network or the real AI: keep <code>llm.provider: none</code> in any config a test writes.</p>
+<p>CI: <code>.github/workflows/tests.yml</code> runs the suite on Python 3.10, 3.12 and 3.13.</p>
+<hr />
+<h2 id="20-deployment-and-operations">20. Deployment and operations</h2>
+<table>
+<thead>
+<tr>
+<th>Target</th>
+<th>How</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Personal computer</td>
+<td><code>leadpipe service install</code> (§4)</td>
+</tr>
+<tr>
+<td>Linux server</td>
+<td><code>pip install -e .</code>, <code>leadpipe init</code>, <code>leadpipe service install</code> + <code>loginctl enable-linger</code>, or <code>deploy/leadpipe.service</code> as a system unit</td>
+</tr>
+<tr>
+<td>Docker</td>
+<td><code>docker compose up -d</code> (mounts <code>config.yaml</code>, <code>.env</code>, <code>./data</code>; needs <code>DASHBOARD_PASSWORD</code> because the container listens on 0.0.0.0; port bound to 127.0.0.1)</td>
+</tr>
+<tr>
+<td>Public URL</td>
+<td>reverse proxy with HTTPS (<code>deploy/Caddyfile.example</code>), set <code>dashboard.public_base_url</code>, <code>DASHBOARD_PASSWORD</code>, <code>BOOKING_WEBHOOK_TOKEN</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Operations:</strong> health check <code>GET /health</code>; logs in <code>data/logs/leadpipe.log</code> (<code>leadpipe service logs</code>); state in
+<code>data/leadpipe.db</code> (back it up; copy it while the engine is stopped or use <code>sqlite3 .backup</code>); upgrade with
+<code>git pull &amp;&amp; pip install -e .</code> and restart (migrations run automatically); emergency stop <code>leadpipe sending pause</code> or the
+Home page Pause button; one engine per database (lock file).</p>
+<p><strong>Regenerating the PDF guides:</strong> <code>python scripts/build_docs.py</code> writes <code>docs/pdf/*.html</code> and, if Playwright for Python
+is installed (<code>pip install playwright &amp;&amp; playwright install chromium</code>), the PDFs. Otherwise open the HTML files in a
+browser and use <em>Print → Save as PDF</em>.</p>
+<hr />
+<h2 id="21-conventions-and-contributing">21. Conventions and contributing</h2>
+<ul>
+<li>Keep <code>python -m pyflakes leadpipe tests</code> and <code>pytest</code> clean; add a test for every behaviour change.</li>
+<li>New settings go into <code>default_config.yaml</code> <strong>with a comment</strong>, and into the user guide if users should know them.</li>
+<li>No secrets in the repository: <code>.env</code>, <code>config.yaml</code> and <code>data/</code> are git-ignored.</li>
+<li>User-facing text (UI, messages, guides) uses plain words; outbound copy must follow the playbook rules and pass
+  <code>compliance.check_message</code>.</li>
+<li>Never add code that sends WhatsApp/social messages or places calls automatically; channels other than email stay
+  one-click tasks.</li>
+<li>Database changes: add columns through <code>db.MIGRATIONS</code>, never by editing existing <code>CREATE TABLE</code> statements for live
+  installs.</li>
+</ul></main></body></html>

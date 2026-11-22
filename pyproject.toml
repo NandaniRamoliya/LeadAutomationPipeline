@@ -23,7 +23,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8"]
+dev = ["pytest>=8", "pyflakes>=3", "markdown>=3.5"]
 
 [project.scripts]
 leadpipe = "leadpipe.cli:main"

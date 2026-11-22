@@ -1,0 +1,853 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<title>LeadAutomationPipeline: User Guide</title><style>
+@page { size: A4; margin: 18mm 16mm 20mm 16mm; }
+:root { --ink:#1b1f24; --muted:#5d6673; --line:#dfe3e8; --accent:#2d5bd8; --soft:#eef2fc; --code:#f4f6f8; }
+* { box-sizing: border-box; }
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+body { font-family: Inter, "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif; color: var(--ink);
+       font-size: 10.4pt; line-height: 1.5; margin: 0; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; page-break-after: always;
+         border-left: 8px solid var(--accent); padding-left: 14mm; }
+.cover .kicker { color: var(--accent); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; font-size: 11pt; }
+.cover h1 { font-size: 34pt; line-height: 1.1; margin: 6mm 0 4mm; border: none; padding: 0; }
+.cover p { font-size: 13pt; color: var(--muted); max-width: 140mm; margin: 0 0 3mm; }
+.cover .meta { margin-top: 14mm; font-size: 10pt; color: var(--muted); }
+h1 { font-size: 20pt; margin: 0 0 4mm; padding-bottom: 2mm; border-bottom: 2px solid var(--accent); }
+h2 { font-size: 15pt; margin: 9mm 0 3mm; padding-bottom: 1.5mm; border-bottom: 1px solid var(--line); page-break-after: avoid; }
+h2:not(:first-of-type) { page-break-before: always; margin-top: 0; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; page-break-after: avoid; color: #213a8a; }
+p, ul, ol { margin: 0 0 2.6mm; }
+li { margin-bottom: 1mm; }
+a { color: var(--accent); text-decoration: none; }
+strong { font-weight: 650; }
+code { font-family: "JetBrains Mono", Consolas, "Cascadia Mono", Menlo, monospace; font-size: 8.8pt;
+       background: var(--code); padding: .5px 4px; border-radius: 3px; }
+pre { background: var(--code); border: 1px solid var(--line); border-radius: 6px; padding: 3mm 4mm; overflow: hidden;
+      white-space: pre-wrap; word-break: break-word; page-break-inside: avoid; margin: 0 0 3mm; }
+pre code { background: none; padding: 0; font-size: 8.4pt; line-height: 1.45; }
+table { width: 100%; border-collapse: collapse; margin: 0 0 3.5mm; font-size: 9pt; page-break-inside: auto; }
+tr { page-break-inside: avoid; }
+th, td { border: 1px solid var(--line); padding: 1.6mm 2.2mm; vertical-align: top; text-align: left; }
+th { background: var(--soft); font-weight: 650; }
+tbody tr:nth-child(even) td { background: #fafbfc; }
+blockquote { margin: 0 0 3mm; padding: 2mm 4mm; border-left: 3px solid var(--accent); background: var(--soft); color: #2b3440; }
+blockquote p:last-child { margin: 0; }
+hr { border: none; border-top: 1px solid var(--line); margin: 5mm 0; }
+.toc-note { color: var(--muted); font-size: 9pt; }
+</style></head><body>
+<section class="cover"><div class="kicker">LeadAutomationPipeline</div><h1>User Guide</h1>
+<p>Set up, use and run your 24/7 lead pipeline: finding leads worldwide, every channel, follow-ups, clients.</p><div class="meta">Version 1.1 · 22 November 2026<br>github.com/NandaniRamoliya/LeadAutomationPipeline</div></section>
+<main><p>This guide explains in simple words <strong>what the system does, how it works, how to set it up, and how to use it
+every day</strong>. No programming knowledge is needed beyond copying a few commands.</p>
+<p><strong>Contents</strong></p>
+<ol>
+<li><a href="#1-what-it-does">What it does</a></li>
+<li><a href="#2-the-5-pages-of-the-dashboard">The 5 pages of the dashboard</a></li>
+<li><a href="#3-install-10-minutes">Install (10 minutes)</a></li>
+<li><a href="#4-try-the-demo">Try the demo</a></li>
+<li><a href="#5-set-it-up-for-your-business">Set it up for your business</a></li>
+<li><a href="#6-make-it-run-247-by-itself">Make it run 24/7 by itself</a></li>
+<li><a href="#7-your-daily-routine-1530-minutes">Your daily routine (15–30 minutes)</a></li>
+<li><a href="#8-where-leads-come-from-start-local-then-the-world">Where leads come from (start local, then the world)</a></li>
+<li><a href="#9-how-each-business-is-researched">How each business is researched</a></li>
+<li><a href="#10-channels-email-whatsapp-instagram-linkedin-x-facebook-calls">Channels: email, WhatsApp, Instagram, LinkedIn, X, Facebook, calls</a></li>
+<li><a href="#11-the-follow-up-logic-every-path">The follow-up logic (every path)</a></li>
+<li><a href="#12-when-a-lead-says-yes-onboarding">When a lead says YES: onboarding</a></li>
+<li><a href="#13-going-live-with-real-emails">Going live with real emails</a></li>
+<li><a href="#14-sending-more-extra-mailboxes">Sending more: extra mailboxes</a></li>
+<li><a href="#15-importing-your-own-lists-google-sheets--csv">Importing your own lists (Google Sheets / CSV)</a></li>
+<li><a href="#16-alerts-on-your-phone">Alerts on your phone</a></li>
+<li><a href="#17-command-reference">Command reference</a></li>
+<li><a href="#18-troubleshooting">Troubleshooting</a></li>
+<li><a href="#19-faq">FAQ</a></li>
+</ol>
+<hr />
+<h2 id="1-what-it-does">1. What it does</h2>
+<p>It is a small sales team that never sleeps:</p>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>What happens</th>
+<th>Who</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Find</strong></td>
+<td>Searches one area for the business types you chose (e.g. dentists, cafés, gyms in Surat). When an area is finished, it moves to the next city, then the next country.</td>
+<td>automatic</td>
+</tr>
+<tr>
+<td><strong>Research</strong></td>
+<td>Opens each business's website and notes real problems you can fix (no online booking, not mobile-friendly, slow, "Not secure", no website at all, low Google rating…). Finds the owner's name, email, phone, WhatsApp, Instagram, LinkedIn.</td>
+<td>automatic</td>
+</tr>
+<tr>
+<td><strong>Score</strong></td>
+<td>Keeps only businesses with problems your service fixes. High-value leads you import go first.</td>
+<td>automatic</td>
+</tr>
+<tr>
+<td><strong>Write</strong></td>
+<td>Writes a short, personal message for each person, built on <em>their</em> problem. With Claude (optional) the writing is even more natural.</td>
+<td>automatic</td>
+</tr>
+<tr>
+<td><strong>Email</strong></td>
+<td>Sends emails one at a time, in <em>their</em> office hours, within safe daily limits.</td>
+<td>automatic (after your OK, or autopilot)</td>
+</tr>
+<tr>
+<td><strong>WhatsApp / Instagram / LinkedIn / X / Facebook / calls</strong></td>
+<td>Writes the message or call script and puts it on your <strong>To-do</strong> with a one-click button.</td>
+<td><strong>you</strong> press send / dial (see §10 why)</td>
+</tr>
+<tr>
+<td><strong>Follow up</strong></td>
+<td>Follows up on a schedule. Every follow-up adds something new.</td>
+<td>automatic</td>
+</tr>
+<tr>
+<td><strong>Read replies</strong></td>
+<td>Reads every email reply, understands it (interested? price? not now? stop?), drafts the answer, moves the lead to the right track.</td>
+<td>automatic</td>
+</tr>
+<tr>
+<td><strong>Close</strong></td>
+<td>No reply after the whole track → closed politely. "Not now" → checks back in 1–3 months. "Stop" → never contacted again.</td>
+<td>automatic</td>
+</tr>
+<tr>
+<td><strong>Onboard</strong></td>
+<td>When someone says yes: contract → payment → welcome → kickoff → access → portal, then client care and referrals.</td>
+<td>automatic messages, you tick what happened</td>
+</tr>
+</tbody>
+</table>
+<p><strong>What you do:</strong> spend 15–30 minutes a day on the <strong>To-do</strong> page (answer replies, send the WhatsApp/DM tasks,
+make the calls), take the meetings, and do the work.</p>
+<hr />
+<h2 id="2-the-5-pages-of-the-dashboard">2. The 5 pages of the dashboard</h2>
+<p>Open <strong>http://localhost:8787</strong> (or run <code>leadpipe open</code>).</p>
+<table>
+<thead>
+<tr>
+<th>Page</th>
+<th>What it's for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Home</strong></td>
+<td>Is it running? What happened today? Which city is being searched now, and which come next? A big <strong>Pause everything</strong> button and a <strong>Run in background always</strong> button.</td>
+</tr>
+<tr>
+<td><strong>To-do</strong></td>
+<td>The <em>only</em> page you need every day. Everything that needs you, most important first, each with one button: <strong>Send reply</strong>, <strong>Open WhatsApp (message ready)</strong>, <strong>📞 Call</strong> + script + "what happened", <strong>Approve</strong> emails, client steps.</td>
+</tr>
+<tr>
+<td><strong>Leads</strong></td>
+<td>Every business: why it's a good lead, its status in plain words (Reaching out / Talking / Clients / Later / Closed) and <em>what happens next</em> ("Email 3 of 5 · in 2 days"). Click one to see everything about it.</td>
+</tr>
+<tr>
+<td><strong>Clients</strong></td>
+<td>People who said yes, and how far their onboarding is.</td>
+</tr>
+<tr>
+<td><strong>Settings</strong></td>
+<td><strong>Setup</strong> form (your business, who/where to reach, channels, your mailbox), <strong>Where to reach</strong> (the city list and progress), <strong>Automation &amp; 24/7</strong>, <strong>Import leads</strong>, <strong>Do-not-contact</strong>, and <strong>What's working</strong> (statistics).</td>
+</tr>
+</tbody>
+</table>
+<p>Top right: <strong>Running</strong> (green) / <strong>Not running</strong> / <strong>PAUSED</strong>, and <strong>TEST MODE</strong> (nothing really sent) or <strong>LIVE</strong>.</p>
+<hr />
+<h2 id="3-install-10-minutes">3. Install (10 minutes)</h2>
+<p>You need <strong>Python 3.10 or newer</strong> (<a href="https://www.python.org/downloads/">python.org</a>; on Windows tick <em>"Add python.exe to PATH"</em>).</p>
+<p><strong>Windows</strong> (PowerShell):</p>
+<pre><code class="language-powershell">git clone https://github.com/NandaniRamoliya/LeadAutomationPipeline.git
+cd LeadAutomationPipeline
+py -3 -m venv .venv
+.venv\Scripts\activate
+pip install -e .
+</code></pre>
+<p><strong>Mac / Linux</strong>:</p>
+<pre><code class="language-bash">git clone https://github.com/NandaniRamoliya/LeadAutomationPipeline.git
+cd LeadAutomationPipeline
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e .
+</code></pre>
+<p>Check: <code>leadpipe --help</code>. Every time you open a new terminal, first <code>cd LeadAutomationPipeline</code> and activate
+(<code>.venv\Scripts\activate</code> or <code>source .venv/bin/activate</code>).</p>
+<hr />
+<h2 id="4-try-the-demo">4. Try the demo</h2>
+<pre><code class="language-bash">leadpipe demo
+leadpipe -c demo/config.yaml dashboard
+</code></pre>
+<p>Open http://localhost:8787. Made-up businesses with every situation: replies of each kind, a WhatsApp task, a call with
+script, a client in onboarding, the city rollout. Click everything. Nothing is ever sent from the demo.</p>
+<hr />
+<h2 id="5-set-it-up-for-your-business">5. Set it up for your business</h2>
+<pre><code class="language-bash">leadpipe start
+</code></pre>
+<p>Open http://localhost:8787 → <strong>Settings → Setup</strong> and fill in the form (2 minutes). It saves everything for you
+(to <code>config.yaml</code> and <code>.env</code>) and the running system uses it within a minute.</p>
+<table>
+<thead>
+<tr>
+<th>Section</th>
+<th>Fill in</th>
+<th>Tips</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>1. Your business</strong></td>
+<td><strong>type of service</strong>, name, what you sell, small first offer, price range, free quick win (and one for businesses with no website), booking link, postal address, proof</td>
+<td>The <strong>type of service</strong> (Websites · AI automation/chatbots · Ads/marketing · SEO · Reviews · Something else) decides which problems make a good lead and how fixes are worded. Write what you sell the way a shop owner would say it. Proof = a real result; leave it empty if you have none: nothing is ever claimed for you. Price is only used when someone asks.</td>
+</tr>
+<tr>
+<td><strong>2. Who to reach</strong></td>
+<td>business types, start city, your timezone, next areas, countries (2-letter codes: IN, AE, GB, US…), problem weights (optional)</td>
+<td>Start where you are. It moves on automatically. Don't put your own country in "Never search in".</td>
+</tr>
+<tr>
+<td><strong>3. Channels</strong></td>
+<td>tick the channels you'll use, tasks per day</td>
+<td>Fewer, better calls/DMs beat many.</td>
+</tr>
+<tr>
+<td><strong>4. Your email</strong></td>
+<td>sending mailbox and password</td>
+<td>See §13 before switching to LIVE.</td>
+</tr>
+<tr>
+<td><strong>5. Extras</strong></td>
+<td>AI, Serper/Google keys, alerts</td>
+<td>All optional.</td>
+</tr>
+</tbody>
+</table>
+<p>When you change the type of service, the problem weights or the business types, every lead is <strong>re-checked</strong>:
+leads that now fit go back in the queue, leads that no longer fit (and were never contacted) are set aside, and messages
+that haven't gone out yet are <strong>rewritten</strong> with the new wording. (Tick <em>Re-check all leads</em> to do it any time.)</p>
+<p>Then check everything: <code>leadpipe doctor</code> (fix every FAIL before going live).</p>
+<blockquote>
+<p>Prefer the terminal? <code>leadpipe init</code> asks the same questions, and every setting is explained inside <code>config.yaml</code>.</p>
+</blockquote>
+<hr />
+<h2 id="6-make-it-run-247-by-itself">6. Make it run 24/7 by itself</h2>
+<p>Run <strong>once</strong> (or click <strong>Run in background always</strong> on the Home page):</p>
+<pre><code class="language-bash">leadpipe service install
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Your computer</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Windows</strong></td>
+<td>Creates a Task Scheduler task "LeadPipeline": starts when you log in, runs hidden (no window), keeps the PC awake while working, runs on battery, and is re-checked every 5 minutes, so if it ever stops it restarts by itself.</td>
+</tr>
+<tr>
+<td><strong>Mac</strong></td>
+<td>A LaunchAgent that starts at login and is kept alive.</td>
+</tr>
+<tr>
+<td><strong>Linux</strong></td>
+<td>A systemd user service with automatic restart (<code>sudo loginctl enable-linger $USER</code> keeps it running after logout).</td>
+</tr>
+</tbody>
+</table>
+<p>Check it: <code>leadpipe service status</code> · see the log: <code>leadpipe service logs</code> · pause: <code>leadpipe service stop</code> ·
+resume: <code>leadpipe service start</code> · remove: <code>leadpipe service uninstall</code>.</p>
+<p><strong>Important:</strong> a program can't run while the computer is <strong>shut down</strong>. Leave it on (sleep is blocked while it
+works; also set <em>Power &amp; battery → When plugged in, put my device to sleep → Never</em>, and on laptops <em>Lid close → Do nothing</em>).
+For <strong>true 24/7 even when your laptop is off</strong>, run it on a small cloud server (~$5/month: Hetzner, DigitalOcean, AWS Lightsail):</p>
+<pre><code class="language-bash">sudo apt update &amp;&amp; sudo apt install -y python3-venv git
+git clone https://github.com/NandaniRamoliya/LeadAutomationPipeline.git &amp;&amp; cd LeadAutomationPipeline
+python3 -m venv .venv &amp;&amp; . .venv/bin/activate &amp;&amp; pip install -e .
+leadpipe init                    # or copy your config.yaml and .env from your PC
+leadpipe service install &amp;&amp; sudo loginctl enable-linger $USER
+</code></pre>
+<p>Open its dashboard from your PC through an SSH tunnel: <code>ssh -L 8787:127.0.0.1:8787 you@server</code>, then http://localhost:8787.
+Or use Docker: <code>docker compose up -d</code> (set <code>DASHBOARD_PASSWORD</code> in <code>.env</code>).</p>
+<p>Only <strong>one</strong> copy runs per database. Starting a second one just says "already running".</p>
+<hr />
+<h2 id="7-your-daily-routine-1530-minutes">7. Your daily routine (15–30 minutes)</h2>
+<p>Open the dashboard → <strong>To-do</strong>, top to bottom:</p>
+<ol>
+<li><strong>Replies &amp; client messages</strong>: read what they wrote, check the drafted answer, <strong>Send reply</strong>. Answer within a few hours.</li>
+<li><strong>Your decision needed</strong>: "let's go ahead" → open the lead → <strong>They said YES</strong> (starts onboarding). Proposal requests, unclear replies.</li>
+<li><strong>Calls to make</strong>: tap <strong>📞 Call</strong>, read the script, then press what happened: <em>No answer</em> (tried again tomorrow), <em>Left voicemail</em>, <em>Talked: interested</em>, <em>Talked: booked</em>, <em>Call back later</em> (≈ a month), <em>Not interested</em>, <em>Wrong number</em>.</li>
+<li><strong>Messages to send</strong>: <strong>Open WhatsApp (message ready)</strong>, press send in WhatsApp, come back, <strong>✓ I sent it</strong>. For Instagram/LinkedIn/X/Facebook the message is copied and the profile opens: paste, send, <strong>✓ I sent it</strong>.</li>
+<li><strong>Emails waiting for your OK</strong>: read a few, then <strong>Approve all</strong>. (After 1–2 weeks of good drafts, turn on <em>Autopilot</em> in Settings → Automation and this section disappears.)</li>
+<li><strong>Client steps</strong>: "Did they sign / pay / did the kickoff happen?" → <strong>Yes, done</strong>.</li>
+</ol>
+<p>If someone answers on WhatsApp, Instagram or by phone, open the lead → <strong>They answered by WhatsApp / phone / DM?</strong> →
+paste what they said → <strong>Log it</strong>. It's understood and handled exactly like an email reply.</p>
+<p>Once a week: <strong>Settings → What's working</strong>: which follow-up gets replies, which problems and business types respond.</p>
+<hr />
+<h2 id="8-where-leads-come-from-start-local-then-the-world">8. Where leads come from (start local, then the world)</h2>
+<p><strong>Areas, one at a time.</strong> You set a start area ("Surat, India") and business types. The system:</p>
+<ol>
+<li>Finds the area on the map and splits big cities into <strong>9 pieces</strong> (so it finds <em>everyone</em>, not just the first results).</li>
+<li>Searches one piece at a time, only when fewer than <code>min_ready_leads</code> fresh leads are waiting (so you never pile up thousands of untouched leads).</li>
+<li>When all pieces are done, marks the area <strong>finished</strong> and moves on: your <em>next areas</em> → the rest of your country
+   (Mumbai, Delhi, Bengaluru, Ahmedabad… 45 Indian cities) → the next countries (UAE, UK, USA, Australia, Canada, Singapore…), city by city.</li>
+</ol>
+<p>See and steer it in <strong>Settings → Where to reach</strong>: <em>Do this area next</em>, <em>Skip</em>, <em>Search again</em>. Each area gets its own
+timezone, so emails always arrive in <strong>their</strong> office hours. Countries in <em>Never search in</em> are skipped.</p>
+<p><strong>Sources:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Source</th>
+<th>Cost</th>
+<th>Good for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OpenStreetMap (default)</td>
+<td>free</td>
+<td>clinics, cafés, restaurants, gyms, salons, shops. Thin for some trades.</td>
+</tr>
+<tr>
+<td>Serper (Google Maps results)</td>
+<td>2,500 free searches, then ~$1/1,000</td>
+<td>everything on Google Maps, with ratings &amp; reviews. Add <code>SERPER_API_KEY</code> in Setup.</td>
+</tr>
+<tr>
+<td>Google Places</td>
+<td>paid by Google</td>
+<td>best coverage. Add <code>GOOGLE_PLACES_API_KEY</code>.</td>
+</tr>
+<tr>
+<td>Your own lists</td>
+<td>free</td>
+<td>Google Sheets / CSV (your Maps scrape, high-value clients, Apollo, Sales Navigator). See §15.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="9-how-each-business-is-researched">9. How each business is researched</h2>
+<p>The Auditor reads the homepage plus up to 5 useful pages (contact, team, about, careers, blog). No AI cost. It records
+<strong>problems with evidence</strong> (shown on the lead page as "Why they're a good lead"):</p>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Example evidence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>No website / Instagram only / site broken</td>
+<td>"social media page only", "HTTP 500"</td>
+</tr>
+<tr>
+<td>No online booking</td>
+<td>no booking button or booking tool</td>
+</tr>
+<tr>
+<td>Not mobile-friendly, slow, "Not secure"</td>
+<td>no mobile viewport, 6.2 s, plain http</td>
+</tr>
+<tr>
+<td>Outdated site, abandoned blog</td>
+<td>"© 2017", last post 2021</td>
+</tr>
+<tr>
+<td>DIY builder (Wix, GoDaddy…), built by an agency</td>
+<td>"Website by XYZ" in the footer</td>
+</tr>
+<tr>
+<td>Running ads</td>
+<td>Google Ads / Meta Pixel found</td>
+</tr>
+<tr>
+<td>Hiring</td>
+<td>open roles from their Greenhouse / Lever / Ashby / Workable board</td>
+</tr>
+<tr>
+<td>Weak SEO, no structured data, no analytics, no chat button</td>
+<td>missing title/description…</td>
+</tr>
+<tr>
+<td>Low Google rating, few reviews</td>
+<td>3.6★, 9 reviews (from Maps imports / Serper / Google)</td>
+</tr>
+<tr>
+<td>Startup backed / recently funded</td>
+<td>"backed by Y Combinator", "we raised a $2M seed"</td>
+</tr>
+</tbody>
+</table>
+<p><strong>People and contacts:</strong> owner/founder/director/"Dr." names; emails from the site (including <code>info [at] site [dot] com</code>
+and hidden ones); the company's <strong>email pattern</strong> (if <code>nora.vale@</code> belongs to Nora Vale, the owner Ravi Mehta is
+<code>ravi.mehta@</code>); phone numbers; WhatsApp, Instagram, LinkedIn, X and Facebook links. Every email is checked (domain can
+receive mail, not a no-reply address). Max 2 people per company.</p>
+<p><strong>Score:</strong> sum of the problems' weights (you choose them: Settings or <code>config.yaml → signals</code>), +10 if a named
+decision-maker, +30 for high-value imports. Below <code>min_score</code> → set aside as "not a fit" (Leads → <em>Being researched / not a fit</em>).</p>
+<hr />
+<h2 id="10-channels-email-whatsapp-instagram-linkedin-x-facebook-calls">10. Channels: email, WhatsApp, Instagram, LinkedIn, X, Facebook, calls</h2>
+<table>
+<thead>
+<tr>
+<th>Channel</th>
+<th>Automatic?</th>
+<th>How it works</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>✉️ <strong>Email</strong></td>
+<td><strong>Yes, fully</strong></td>
+<td>Sent from your mailbox, in their office hours, with warm-up and daily limits. Replies are read automatically.</td>
+</tr>
+<tr>
+<td>💬 <strong>WhatsApp</strong></td>
+<td>One click</td>
+<td>The message is written; <strong>Open WhatsApp</strong> opens the chat with the text already typed; you press send. Used when the business has a mobile number or WhatsApp link.</td>
+</tr>
+<tr>
+<td>📸 Instagram · 💼 LinkedIn · 𝕏 X · 📘 Facebook</td>
+<td>One click</td>
+<td>The message is copied and their profile/DM opens; you paste and send.</td>
+</tr>
+<tr>
+<td>📞 <strong>Calls</strong></td>
+<td>One tap</td>
+<td>Tap to dial (on your phone, open the dashboard on the same Wi-Fi, see §19), read the personalised script, press what happened. "No answer" retries tomorrow (2 attempts).</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Why not fully automatic?</strong> Instagram, LinkedIn, X, Facebook and WhatsApp ban accounts that send automated messages
+(and WhatsApp's business API forbids cold messages). Automated/robo calls are illegal in many countries (US TCPA, India's
+TRAI rules, UK PECR). One click per message keeps your accounts and phone number safe, and personal messages get far more
+replies anyway.</p>
+<p><strong>Which channel when:</strong> leads <strong>with email</strong> get the email track, plus (only if they're good leads, score ≥
+<code>min_score_for_tasks</code>) one call and one DM in between. Leads <strong>without email</strong> get a DM/call track
+(WhatsApp first, then Instagram, LinkedIn, Facebook, X). Calls/DMs are capped per day (<code>tasks_per_day</code>), best leads first.</p>
+<hr />
+<h2 id="11-the-follow-up-logic-every-path">11. The follow-up logic (every path)</h2>
+<p>Every lead is in one <strong>stage</strong>. Each stage has its own <strong>track</strong>. When they reply, the old track stops and the right
+new one starts. That's how "converted → different follow-up, not converted → different follow-up, close after a certain
+time" works.</p>
+<h3 id="111-no-reply-yet">11.1 No reply yet</h3>
+<p><strong>Has email (<code>cold</code>):</strong></p>
+<table>
+<thead>
+<tr>
+<th>Day</th>
+<th>Step</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>✉️ intro: their problem, what it costs, free quick win, one soft question</td>
+</tr>
+<tr>
+<td>3</td>
+<td>✉️ short bump with one new detail (same thread)</td>
+</tr>
+<tr>
+<td>5</td>
+<td>📞 call (good leads only, if there's a phone)</td>
+</tr>
+<tr>
+<td>7</td>
+<td>✉️ new insight: what you'd change first</td>
+</tr>
+<tr>
+<td>10</td>
+<td>💬 short DM on WhatsApp/Instagram/LinkedIn (good leads only)</td>
+</tr>
+<tr>
+<td>12</td>
+<td>✉️ "reply yes and I'll make the free audit/mock-up for you"</td>
+</tr>
+<tr>
+<td>18</td>
+<td>✉️ polite close, door open</td>
+</tr>
+<tr>
+<td>25</td>
+<td>still silent → <strong>Closed</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>No email (<code>cold_social</code>):</strong> day 0 DM intro → day 2 call → day 6 DM follow-up → day 13 last DM → day 20 closed.</p>
+<p>Days count from the previous message, so delays (limits, weekends) never squash the spacing. Steps that can't happen
+(no phone, no social profile) are skipped automatically.</p>
+<h3 id="112-what-each-reply-does">11.2 What each reply does</h3>
+<table>
+<thead>
+<tr>
+<th>They say (examples)</th>
+<th>Understood as</th>
+<th>Next</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>"Interested", "yes, send it", "tell me more"</td>
+<td>interested</td>
+<td><strong>Talking</strong>: answer drafted (call link); booking nudge day 2, call day 4, proof day 6, close day 10 → Later</td>
+</tr>
+<tr>
+<td>"How much?" / "Portfolio?" / "How long?"</td>
+<td>question</td>
+<td><strong>Talking</strong>: answer drafted (price <em>range</em> only when asked)</td>
+</tr>
+<tr>
+<td>"I booked Thursday" / calendar booking</td>
+<td>call booked</td>
+<td><strong>Call booked</strong> → the day after: proposal track (day 2 email, day 4 call, day 6 FAQ, day 10 smaller first step, day 21 close → Later)</td>
+</tr>
+<tr>
+<td>"Send a quote/proposal"</td>
+<td>proposal request</td>
+<td><strong>Deciding</strong> (you write the proposal; template in docs/templates)</td>
+</tr>
+<tr>
+<td>"Let's go ahead", "send the agreement"</td>
+<td>ready to buy</td>
+<td><strong>Your decision needed</strong> → click <strong>They said YES</strong> → onboarding</td>
+</tr>
+<tr>
+<td>"Not now", "next quarter", "in 2 months"</td>
+<td>not now</td>
+<td><strong>Later</strong>: check back at the time they said (default 60 days), then 30/60/90-day check-ins → Closed</td>
+</tr>
+<tr>
+<td>"We already have someone"</td>
+<td>already have</td>
+<td><strong>Later</strong> (first check-in after 90 days)</td>
+</tr>
+<tr>
+<td>"Talk to our manager ravi@…"</td>
+<td>referral</td>
+<td>Ravi is added and contacted ("X suggested I reach out")</td>
+</tr>
+<tr>
+<td>"Not interested", "no thanks"</td>
+<td>no</td>
+<td><strong>Closed</strong> + one polite "understood" (needs your OK) + never contacted again</td>
+</tr>
+<tr>
+<td>"Unsubscribe", "stop", "remove me"</td>
+<td>opt-out</td>
+<td><strong>Opted out</strong>, never contacted again (email, phone and profiles)</td>
+</tr>
+<tr>
+<td>Out-of-office</td>
+<td>auto-reply</td>
+<td>nothing changes; next follow-up pushed 4 days</td>
+</tr>
+<tr>
+<td>Delivery failure</td>
+<td>bounce</td>
+<td><strong>Email bounced</strong>, address never used again</td>
+</tr>
+</tbody>
+</table>
+<p>When <strong>anyone</strong> at a company replies, outreach to their colleagues stops.</p>
+<h3 id="113-moving-leads-yourself">11.3 Moving leads yourself</h3>
+<p>Open a lead → <strong>More actions → Move</strong> (or <code>leadpipe stage &lt;id&gt; &lt;stage&gt;</code>). The new stage's track starts right away.</p>
+<hr />
+<h2 id="12-when-a-lead-says-yes-onboarding">12. When a lead says YES: onboarding</h2>
+<p>Open the lead → <strong>More actions → They said YES</strong> (or <code>leadpipe won &lt;id&gt; --value 15000</code>).</p>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Written for you automatically</th>
+<th>You tick (To-do → Client steps)</th>
+<th>Reminder if stuck</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>01 Contract</td>
+<td>"Next steps: agreement" with your e-sign link</td>
+<td><strong>Contract signed</strong></td>
+<td>every 2 days, 3×</td>
+</tr>
+<tr>
+<td>02 Payment</td>
+<td>invoice / payment link</td>
+<td><strong>Payment received</strong></td>
+<td>every 2 days, 3×</td>
+</tr>
+<tr>
+<td>03 Welcome</td>
+<td>what happens next, what you need, timeline + kickoff link</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>04 Kickoff</td>
+<td></td>
+<td><strong>Kickoff call done</strong></td>
+<td>kickoff link reminder</td>
+</tr>
+<tr>
+<td>05 Access</td>
+<td>the access list (invite me as a user, never send passwords on chat)</td>
+<td><strong>All access received</strong></td>
+<td>every 2 days, 3×</td>
+</tr>
+<tr>
+<td>06 Portal</td>
+<td>"everything in one place: <link>"</td>
+<td><strong>Client portal live</strong></td>
+<td></td>
+</tr>
+<tr>
+<td>Then</td>
+<td><strong>client care</strong>: check-in day 14, testimonial day 30, referral ask day 60, next-project idea day 120</td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>No payment, no onboarding: the welcome message only comes after <em>Payment received</em>. Templates for the contract, proposal,
+welcome document, kickoff agenda, access checklist and portal are in <a href="https://github.com/NandaniRamoliya/LeadAutomationPipeline/blob/main/docs/templates">docs/templates/</a>.</p>
+<hr />
+<h2 id="13-going-live-with-real-emails">13. Going live with real emails</h2>
+<ol>
+<li><strong>Use a separate sending domain</strong> (e.g. <code>getpixelstudio.com</code> if your site is <code>pixelstudio.com</code>): ~₹800/year + a
+   Google Workspace mailbox (~$7/month). This protects your main domain.</li>
+<li><strong>DNS records</strong> at your domain provider: SPF <code>v=spf1 include:_spf.google.com ~all</code> (TXT on <code>@</code>); DKIM (Google Admin →
+   Apps → Gmail → Authenticate email → generate, add TXT <code>google._domainkey</code>, start authentication); DMARC TXT on <code>_dmarc</code>:
+   <code>v=DMARC1; p=none; rua=mailto:you@yourmaindomain.com</code>.</li>
+<li><strong>App Password</strong>: Google Account → Security → 2-Step Verification → App passwords. Put it in Setup → 4.</li>
+<li><strong>Warm up</strong> the mailbox 2–4 weeks with normal use. The system also ramps up by itself: 5 emails on day 1, +2 per day, up to your daily limit.</li>
+<li><code>leadpipe doctor</code> shows no FAIL (it checks SPF, DKIM, DMARC, SMTP and IMAP login).</li>
+<li>Settings → Setup → tick <strong>LIVE</strong> → Save. The top bar shows <strong>LIVE</strong>.</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th>Provider</th>
+<th>SMTP</th>
+<th>IMAP</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Google Workspace / Gmail</td>
+<td><code>smtp.gmail.com</code> 587 starttls</td>
+<td><code>imap.gmail.com</code> 993</td>
+</tr>
+<tr>
+<td>Microsoft 365</td>
+<td><code>smtp.office365.com</code> 587 starttls</td>
+<td><code>outlook.office365.com</code> 993</td>
+</tr>
+<tr>
+<td>Zoho Mail</td>
+<td><code>smtp.zoho.in</code> (or <code>.com</code>) 465 ssl</td>
+<td><code>imap.zoho.in</code> 993</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Emergency stop:</strong> Home → <strong>Pause everything</strong> (or <code>leadpipe sending pause</code>).</p>
+<p><strong>Autopilot</strong> (Settings → Automation): <em>outreach</em> emails that pass every check go without your OK; <em>simple replies</em>
+(interested / price / timeline / portfolio / booked) go by themselves. Ready-to-buy, proposals, referrals and unclear replies
+<strong>always</strong> wait for you.</p>
+<hr />
+<h2 id="14-sending-more-extra-mailboxes">14. Sending more: extra mailboxes</h2>
+<p>One mailbox should send <strong>30–50 cold emails a day</strong> at most. To reach more people, add mailboxes (ideally on 1–3 extra
+sending domains), not more volume per mailbox. In <code>config.yaml</code>:</p>
+<pre><code class="language-yaml">mailboxes:
+  - {name: &quot;second&quot;, email: &quot;asha@getpixelstudio.co&quot;, from_name: &quot;Asha Patel&quot;,
+     smtp_host: &quot;smtp.gmail.com&quot;, smtp_port: 587, smtp_security: starttls,
+     imap_host: &quot;imap.gmail.com&quot;, password_env: &quot;MAILBOX2_PASSWORD&quot;}
+</code></pre>
+<p>and in <code>.env</code>: <code>MAILBOX2_PASSWORD=the-app-password</code>. Each mailbox warms up separately and has its own daily limit.
+A lead always hears from the same mailbox, and replies to every mailbox are read.</p>
+<hr />
+<h2 id="15-importing-your-own-lists-google-sheets--csv">15. Importing your own lists (Google Sheets / CSV)</h2>
+<p>Settings → <strong>Import leads</strong>, or:</p>
+<pre><code class="language-bash">leadpipe import &quot;https://docs.google.com/spreadsheets/d/…/edit#gid=0&quot; --area &quot;Surat, India&quot; --priority
+leadpipe import my-leads.csv --area &quot;Dubai, UAE&quot;
+</code></pre>
+<ul>
+<li><strong>Google Sheets:</strong> in the sheet, <em>Share → General access → Anyone with the link → Viewer</em>. Tick <em>Keep synced</em> and
+  new rows are imported every 6 hours.</li>
+<li><strong>Columns are recognised automatically</strong>, including the ones Google Maps scrapers use: <code>title</code>/<code>name</code>, <code>website</code>,
+  <code>phone</code>, <code>email</code>, <code>address</code>, <code>city</code>, <code>totalScore</code>/<code>rating</code>, <code>reviewsCount</code>/<code>reviews</code>, <code>categoryName</code>/<code>category</code>,
+  <code>instagram</code>, <code>facebook</code>, <code>linkedin</code>, <code>url</code> (Maps link), plus <code>priority</code>/<code>tier</code>/<code>vip</code> (yes/high/1 = high-value).</li>
+<li><strong>High-value</strong> leads (<code>--priority</code> or a priority column) are researched and contacted first, get calls/DMs even with
+  a low score, and show a <em>high-value</em> badge.</li>
+<li>Duplicates are merged (same website, Maps id, or name + city), so importing again is safe.</li>
+<li>Phone numbers are normalised (+91…) and mobile numbers are used for WhatsApp.</li>
+</ul>
+<hr />
+<h2 id="16-alerts-on-your-phone">16. Alerts on your phone</h2>
+<p>Hot replies, booked calls and a daily summary can go to:
+- <strong>Telegram:</strong> create a bot with @BotFather, put the token and your chat id in Setup → 5.
+- <strong>Email:</strong> Setup → 5 → <em>Send hot-lead alerts to</em> (your normal address).
+- <strong>Slack/Discord:</strong> an incoming-webhook URL in <code>.env</code> as <code>NOTIFY_WEBHOOK_URL</code>.</p>
+<hr />
+<h2 id="17-command-reference">17. Command reference</h2>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>leadpipe start</code></td>
+<td>run everything (engine + dashboard)</td>
+</tr>
+<tr>
+<td><code>leadpipe service install</code> / <code>status</code> / <code>stop</code> / <code>start</code> / <code>logs</code> / <code>uninstall</code></td>
+<td>run 24/7 in the background</td>
+</tr>
+<tr>
+<td><code>leadpipe open</code></td>
+<td>open the dashboard</td>
+</tr>
+<tr>
+<td><code>leadpipe demo</code></td>
+<td>safe demo</td>
+</tr>
+<tr>
+<td><code>leadpipe init</code> / <code>doctor</code></td>
+<td>create settings / check everything</td>
+</tr>
+<tr>
+<td><code>leadpipe areas</code> · <code>areas add "Pune, India"</code> · <code>areas skip "X, Y"</code></td>
+<td>the city-by-city rollout</td>
+</tr>
+<tr>
+<td><code>leadpipe discover [--area "City, Country"] [--steps 3]</code></td>
+<td>search now</td>
+</tr>
+<tr>
+<td><code>leadpipe import &lt;file.csv or sheet link&gt; [--area …] [--priority]</code></td>
+<td>import leads</td>
+</tr>
+<tr>
+<td><code>leadpipe enrich</code> · <code>write</code> · <code>send [--now]</code> · <code>inbox</code></td>
+<td>run one step now</td>
+</tr>
+<tr>
+<td><code>leadpipe leads</code> · <code>contacts [--stage X]</code> · <code>stats</code></td>
+<td>look at the data</td>
+</tr>
+<tr>
+<td><code>leadpipe outbox [show/approve/reject/skip/stop ID]</code></td>
+<td>review emails in the terminal</td>
+</tr>
+<tr>
+<td><code>leadpipe stage ID STAGE</code> · <code>won ID</code> · <code>onboard ID [STEP]</code></td>
+<td>move leads / clients</td>
+</tr>
+<tr>
+<td><code>leadpipe export [--calls] [--file out.csv]</code></td>
+<td>export contacts, or today's call list for a telecaller</td>
+</tr>
+<tr>
+<td><code>leadpipe sending pause/resume</code> · <code>autopilot on/off [--replies]</code></td>
+<td>switches</td>
+</tr>
+<tr>
+<td><code>leadpipe suppress x@y.com</code> · <code>forget x@y.com</code></td>
+<td>never contact / delete all data about a person</td>
+</tr>
+<tr>
+<td><code>leadpipe simulate-reply ID "text"</code></td>
+<td>test how a reply is handled</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="18-troubleshooting">18. Troubleshooting</h2>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>leadpipe</code> not found</td>
+<td>Activate the venv first (<code>.venv\Scripts\activate</code> / <code>source .venv/bin/activate</code>).</td>
+</tr>
+<tr>
+<td>Home says <strong>Not running</strong></td>
+<td><code>leadpipe start</code>, or <code>leadpipe service install</code>. Check <code>leadpipe service logs</code>.</td>
+</tr>
+<tr>
+<td>Nothing is sent</td>
+<td>In order: not <em>PAUSED</em>; mode is <em>LIVE</em>; emails approved (or autopilot on); inside <em>their</em> office hours on a weekday; today's limit not reached.</td>
+</tr>
+<tr>
+<td>SMTP login failed</td>
+<td>Gmail/Workspace needs an <strong>App Password</strong> (2-Step Verification on).</td>
+</tr>
+<tr>
+<td>Emails land in spam</td>
+<td>Fix SPF/DKIM/DMARC (<code>leadpipe doctor</code>), finish warm-up, lower the daily limit.</td>
+</tr>
+<tr>
+<td>No businesses found</td>
+<td>Write the area as "City, Country". Try other business types. Add Serper (2,500 free) for trades OpenStreetMap misses.</td>
+</tr>
+<tr>
+<td>Most leads "not a fit"</td>
+<td>Leads → <em>Being researched / not a fit</em> shows why. Lower <code>min_score</code>, or raise the weights of problems your service fixes.</td>
+</tr>
+<tr>
+<td>Too many / too few calls &amp; DMs</td>
+<td>Settings → Setup → 3: tasks per day, minimum score.</td>
+</tr>
+<tr>
+<td>Google Sheet import fails</td>
+<td>Share it as <em>Anyone with the link → Viewer</em>, or download it as CSV and upload.</td>
+</tr>
+<tr>
+<td>Replies not detected</td>
+<td>IMAP host/port/password in Setup → 4 (Gmail: enable IMAP in Gmail settings). Or log replies by hand.</td>
+</tr>
+<tr>
+<td>Bounce rate above 5%</td>
+<td>Pause. In <code>config.yaml</code>: <code>allow_role_emails: false</code>, <code>allow_pattern_emails: false</code>.</td>
+</tr>
+<tr>
+<td>"Already running"</td>
+<td>Only one copy per database. That's normal if the background service is on.</td>
+</tr>
+</tbody>
+</table>
+<p>The <strong>Home → What just happened</strong> list and each lead's <strong>History</strong> show exactly what happened and why.</p>
+<hr />
+<h2 id="19-faq">19. FAQ</h2>
+<p><strong>Will it send without me?</strong> No. It starts in TEST MODE, and in LIVE mode every email waits on your To-do until you
+approve it, unless you switch on autopilot.</p>
+<p><strong>Can I use the dashboard on my phone (for calls)?</strong> Yes. In <code>config.yaml</code> set <code>dashboard.host: "0.0.0.0"</code> and set
+<code>DASHBOARD_PASSWORD</code> in <code>.env</code>, restart, then open <code>http://&lt;your-computer's-IP&gt;:8787</code> on your phone (same Wi-Fi).
+<strong>📞 Call</strong> buttons dial directly, and <strong>Open WhatsApp</strong> opens the WhatsApp app.</p>
+<p><strong>How many people can it reach?</strong> Email: about 30–50 new + follow-ups per mailbox per day after warm-up (add mailboxes
+to grow). Calls/DMs: as many as you set in <em>tasks per day</em>. It never stops finding new areas.</p>
+<p><strong>What reply rate should I expect?</strong> Targeted, personal outreach: 5–15% replies, 2–5% interested. Below 2% after 100
+people means the targeting or offer needs work (Settings → What's working).</p>
+<p><strong>Is it legal?</strong> Cold B2B outreach is legal in many countries <em>if you follow the rules</em>, and the system builds most of
+them in. Some countries (Germany, Canada…) are strict. Read <a href="https://github.com/NandaniRamoliya/LeadAutomationPipeline/blob/main/docs/LEGAL_AND_COMPLIANCE.md">LEGAL_AND_COMPLIANCE.md</a>. Not legal advice.</p>
+<p><strong>Where is my data?</strong> Only on your computer/server: <code>data/leadpipe.db</code>. Back it up. With AI on, a lead's public website
+text and the conversation are sent to Claude to write and understand messages.</p>
+<p><strong>How much does the AI cost?</strong> Optional. With the <code>claude</code> command-line tool logged in to your Claude Pro/Max plan it uses
+your plan (no per-message bill). With an API key, expect cents per lead. <code>llm.max_calls_per_day</code> caps it.</p></main></body></html>
