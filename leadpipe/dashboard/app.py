@@ -119,7 +119,7 @@ def create_app(cfg: Config, db: DB, engine=None) -> Flask:
         if password:
             a = request.authorization
             if not a or not hmac.compare_digest(a.password or "", password):
-                return Response("Login required", 401, {"WWW-Authenticate": 'Basic realm="Lead Pipeline"'})
+                return Response("Login required", 401, {"WWW-Authenticate": 'Basic realm="Orbit"'})
         if request.method == "POST":
             token = request.form.get("_csrf") or request.headers.get("X-CSRF")
             if not token or not hmac.compare_digest(token, session.get("csrf", "")):

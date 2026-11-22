@@ -1,4 +1,6 @@
-# User Guide: LeadAutomationPipeline
+# User Guide: Orbit
+
+*Orbit by Indrix (GitHub repository: LeadAutomationPipeline). The command is `leadpipe`; `orbit` works the same.*
 
 This guide explains in simple words **what the system does, how it works, how to set it up, and how to use it
 every day**. No programming knowledge is needed beyond copying a few commands.

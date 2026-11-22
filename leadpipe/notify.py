@@ -38,9 +38,9 @@ def _email_owner(cfg: Config, owner: str, title: str, text: str) -> None:
     from .sender import Mailer
 
     em = EmailMessage()
-    em["From"] = formataddr(("Lead Pipeline", cfg.from_email or "pipeline@localhost"))
+    em["From"] = formataddr(("Orbit", cfg.from_email or "pipeline@localhost"))
     em["To"] = owner
-    em["Subject"] = f"[Leads] {title}"
+    em["Subject"] = f"[Orbit] {title}"
     em["Message-ID"] = make_msgid(domain=cfg.sending_domain)
     em["Auto-Submitted"] = "auto-generated"  # so our own inbox reader ignores it
     em.set_content(text + "\n\nOpen your dashboard to review.")

@@ -1,5 +1,5 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8">
-<title>LeadAutomationPipeline: Developer Guide</title><style>
+<title>Orbit: Developer Guide</title><style>
 @page { size: A4; margin: 18mm 16mm 20mm 16mm; }
 :root { --ink:#1b1f24; --muted:#5d6673; --line:#dfe3e8; --accent:#2d5bd8; --soft:#eef2fc; --code:#f4f6f8; }
 * { box-sizing: border-box; }
@@ -35,7 +35,7 @@ blockquote p:last-child { margin: 0; }
 hr { border: none; border-top: 1px solid var(--line); margin: 5mm 0; }
 .toc-note { color: var(--muted); font-size: 9pt; }
 </style></head><body>
-<section class="cover"><div class="kicker">LeadAutomationPipeline</div><h1>Developer Guide</h1>
+<section class="cover"><div class="kicker">Orbit · by Indrix</div><h1>Developer Guide</h1>
 <p>Architecture, data model, modules, configuration, extending, testing and deployment.</p><div class="meta">Version 1.1 · 22 November 2026<br>github.com/NandaniRamoliya/LeadAutomationPipeline</div></section>
 <main><p>For anyone who wants to understand, change, extend or deploy the code. For <em>using</em> the product, see the
 <a href="https://github.com/NandaniRamoliya/LeadAutomationPipeline/blob/main/docs/USER_GUIDE.md">User Guide</a>.</p>
@@ -65,7 +65,7 @@ hr { border: none; border-top: 1px solid var(--line); margin: 5mm 0; }
 </ol>
 <hr />
 <h2 id="1-overview-and-design-principles">1. Overview and design principles</h2>
-<p>LeadAutomationPipeline is a single Python package (<code>leadpipe</code>) that runs an outbound sales pipeline 24/7:
+<p><strong>Orbit</strong> (by Indrix; GitHub repository <code>LeadAutomationPipeline</code>) is a single Python package (<code>leadpipe</code>, commands <code>leadpipe</code> and <code>orbit</code>) that runs an outbound sales pipeline 24/7:
 <strong>find → research → score → write → send / task → read replies → move to the right follow-up track → onboard</strong>.</p>
 <table>
 <thead>

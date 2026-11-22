@@ -473,7 +473,7 @@ def cmd_train(args) -> None:
 
 # ---------------------------------------------------------------------------
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="leadpipe", description="24/7 lead generation & sales pipeline.")
+    p = argparse.ArgumentParser(description="Orbit by Indrix: 24/7 lead generation & sales pipeline. (`orbit` and `leadpipe` are the same command.)")
     p.add_argument("-c", "--config", help="path to config.yaml (default ./config.yaml)")
     p.add_argument("-v", "--verbose", action="store_true")
     sub = p.add_subparsers(dest="cmd", required=True)

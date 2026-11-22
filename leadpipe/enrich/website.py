@@ -14,7 +14,7 @@ from bs4 import BeautifulSoup
 
 from ..discovery import USER_AGENT, is_social, normalize_domain
 
-HEADERS = {"User-Agent": USER_AGENT.replace("LeadAutomationPipeline/1.0", "Mozilla/5.0 (compatible; LeadAutomationPipeline/1.0)"),
+HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; " + USER_AGENT + ")",
            "Accept-Language": "en"}
 EMAIL_FIND_RE = re.compile(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,24}")
 BAD_EMAIL_SUFFIX = (".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".css", ".js")

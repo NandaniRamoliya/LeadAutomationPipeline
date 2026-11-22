@@ -106,7 +106,7 @@ def windows_task_xml(cfg: Config) -> str:
     arg_str = " ".join(f'"{a}"' if (" " in a or not a) else a for a in args)
     return f"""<?xml version="1.0" encoding="UTF-16"?>
 <Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
-  <RegistrationInfo><Description>LeadAutomationPipeline: finds leads, sends and follows up 24/7.</Description></RegistrationInfo>
+  <RegistrationInfo><Description>Orbit by Indrix: finds leads, sends and follows up 24/7.</Description></RegistrationInfo>
   <Triggers>
     <LogonTrigger><Enabled>true</Enabled>{uid_xml}</LogonTrigger>
     <TimeTrigger>
@@ -162,7 +162,7 @@ def systemd_unit(cfg: Config) -> str:
     exe, args, workdir = service_command(cfg)
     cmd = " ".join([exe, *[f'"{a}"' if " " in a else a for a in args]])
     return f"""[Unit]
-Description=LeadAutomationPipeline (24/7 lead engine + dashboard)
+Description=Orbit by Indrix (24/7 lead engine + dashboard)
 After=network-online.target
 Wants=network-online.target
 

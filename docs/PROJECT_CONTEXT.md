@@ -1,4 +1,4 @@
-# Project Context: LeadAutomationPipeline
+# Project Context: Orbit (repository LeadAutomationPipeline)
 
 > **Purpose of this file:** hand it to any new AI conversation (Claude, ChatGPT, …) so it can continue the work
 > without starting from the beginning. It summarises what was asked, what was decided and why, what exists now,
@@ -9,7 +9,7 @@
 ## 0. Paste this at the start of a new conversation
 
 ```
-I'm continuing work on my project LeadAutomationPipeline
+I'm continuing work on my project Orbit (repository LeadAutomationPipeline)
 (GitHub: https://github.com/NandaniRamoliya/LeadAutomationPipeline, branch main).
 Please read docs/PROJECT_CONTEXT.md first. It explains the goal, decisions, current state and next steps.
 Then read docs/DEVELOPER_GUIDE.md for the code and docs/USER_GUIDE.md for how it's used.
@@ -24,6 +24,9 @@ What I want now: <write your request here>
 
 - **Owner:** Nandani Ramoliya, freelancer, business name **Indrix** (Surat, India). Sells **AI automation**
   (WhatsApp/email assistants that answer enquiries, book appointments and follow up).
+- **Product name: Orbit** (by Indrix), chosen from suggested names. The repository is still called
+  LeadAutomationPipeline, the Python package and command stay `leadpipe` (`orbit` is an alias), and the
+  background-service names stay unchanged so existing installs keep working.
 - **Project:** a Python app that runs **24/7 in the background** and does sales outreach automatically:
   find leads → research them → reach out → follow up → handle replies → different follow-ups for converted /
   not-converted leads → close after a set time → onboard clients.

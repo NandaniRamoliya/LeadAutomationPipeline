@@ -4,7 +4,7 @@
 #   sudo systemctl daemon-reload && sudo systemctl enable --now leadpipe
 #   journalctl -u leadpipe -f        # live logs
 [Unit]
-Description=LeadAutomationPipeline (24/7 lead engine + dashboard)
+Description=Orbit by Indrix (24/7 lead engine + dashboard)
 After=network-online.target
 Wants=network-online.target
 

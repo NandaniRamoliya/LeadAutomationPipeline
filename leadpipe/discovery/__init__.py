@@ -19,7 +19,7 @@ from ..db import DB, now_iso, parse_iso, utcnow
 
 log = logging.getLogger("leadpipe.discovery")
 
-USER_AGENT = "LeadAutomationPipeline/1.1 (+https://github.com/NandaniRamoliya/LeadAutomationPipeline)"
+USER_AGENT = "Orbit/1.1 (+https://github.com/NandaniRamoliya/LeadAutomationPipeline)"
 
 
 def normalize_domain(url: str | None) -> str | None:

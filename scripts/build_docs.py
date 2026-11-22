@@ -20,9 +20,9 @@ DOCS = ROOT / "docs"
 OUT = DOCS / "pdf"
 
 GUIDES = [
-    ("USER_GUIDE.md", "LeadAutomationPipeline-User-Guide", "User Guide",
+    ("USER_GUIDE.md", "Orbit-User-Guide", "User Guide",
      "Set up, use and run your 24/7 lead pipeline: finding leads worldwide, every channel, follow-ups, clients."),
-    ("DEVELOPER_GUIDE.md", "LeadAutomationPipeline-Developer-Guide", "Developer Guide",
+    ("DEVELOPER_GUIDE.md", "Orbit-Developer-Guide", "Developer Guide",
      "Architecture, data model, modules, configuration, extending, testing and deployment."),
 ]
 
@@ -85,14 +85,14 @@ def to_html(md_path: Path, title: str, subtitle: str) -> str:
                              extension_configs={"toc": {"slugify": slugify}})
     today = dt.date.today().strftime("%d %B %Y")
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
-<title>LeadAutomationPipeline: {html.escape(title)}</title><style>{CSS}</style></head><body>
-<section class="cover"><div class="kicker">LeadAutomationPipeline</div><h1>{html.escape(title)}</h1>
+<title>Orbit: {html.escape(title)}</title><style>{CSS}</style></head><body>
+<section class="cover"><div class="kicker">Orbit · by Indrix</div><h1>{html.escape(title)}</h1>
 <p>{html.escape(subtitle)}</p><div class="meta">Version 1.1 · {today}<br>github.com/NandaniRamoliya/LeadAutomationPipeline</div></section>
 <main>{body}</main></body></html>"""
 
 
 FOOTER = ('<div style="font-size:8px;color:#8a93a0;width:100%;padding:0 16mm;display:flex;justify-content:space-between;'
-          'font-family:Inter,Segoe UI,Arial,sans-serif"><span>LeadAutomationPipeline · {title}</span>'
+          'font-family:Inter,Segoe UI,Arial,sans-serif"><span>Orbit · {title}</span>'
           '<span><span class="pageNumber"></span> / <span class="totalPages"></span></span></div>')
 
 

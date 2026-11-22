@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}What's working · Lead Pipeline{% endblock %}
+{% block title %}What's working · Orbit{% endblock %}
 {% block content %}
 <div class="row" style="justify-content:space-between"><h1>What's working (last {{ days }} days)</h1>
 <div class="tabs">{% for d in [7, 30, 90, 365] %}<a class="{{ 'on' if d == days }}" href="{{ url_for('insights', days=d) }}">{{ d }} days</a>{% endfor %}</div></div>

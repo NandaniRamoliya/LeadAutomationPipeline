@@ -1,6 +1,8 @@
-# LeadAutomationPipeline
+# 🪐 Orbit
 
-**A 24/7 sales machine for freelancers and agencies.** It finds businesses that need your service (one city at a
+*by [Indrix](https://nandaniramoliya.github.io/Indrix/) · repository: LeadAutomationPipeline*
+
+**Orbit is a 24/7 sales machine for freelancers and agencies.** It finds businesses that need your service (one city at a
 time, then the whole world), researches each one, finds the owner and every way to reach them, writes a personal
 message, sends emails at human speed, puts WhatsApp / Instagram / LinkedIn / X / Facebook messages and phone calls
 on your To-do as one-click tasks, reads the replies, answers them, and runs a **different follow-up track for every
@@ -78,8 +80,8 @@ running 24/7, importing your Google Sheets, and troubleshooting.
 
 | Document | For |
 |---|---|
-| [docs/USER_GUIDE.md](docs/USER_GUIDE.md) · **[PDF](docs/pdf/LeadAutomationPipeline-User-Guide.pdf)** | Everything to set up, run and use it |
-| [docs/DEVELOPER_GUIDE.md](docs/DEVELOPER_GUIDE.md) · **[PDF](docs/pdf/LeadAutomationPipeline-Developer-Guide.pdf)** | Architecture, modules, data model, configuration, extending, testing, deployment |
+| [docs/USER_GUIDE.md](docs/USER_GUIDE.md) · **[PDF](docs/pdf/Orbit-User-Guide.pdf)** | Everything to set up, run and use it |
+| [docs/DEVELOPER_GUIDE.md](docs/DEVELOPER_GUIDE.md) · **[PDF](docs/pdf/Orbit-Developer-Guide.pdf)** | Architecture, modules, data model, configuration, extending, testing, deployment |
 | [docs/SALES_PLAYBOOK.md](docs/SALES_PLAYBOOK.md) | The sales rules it follows, call scripts, objections, pricing |
 | [docs/LEGAL_AND_COMPLIANCE.md](docs/LEGAL_AND_COMPLIANCE.md) | Email, WhatsApp, DM and calling rules by country |
 | [docs/templates/](docs/templates/) | Service agreement, proposal, welcome document, kickoff agenda, access checklist, client portal |

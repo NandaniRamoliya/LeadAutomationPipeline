@@ -1,4 +1,4 @@
-# Developer Guide: LeadAutomationPipeline
+# Developer Guide: Orbit
 
 For anyone who wants to understand, change, extend or deploy the code. For *using* the product, see the
 [User Guide](USER_GUIDE.md).
@@ -31,7 +31,7 @@ For anyone who wants to understand, change, extend or deploy the code. For *usin
 
 ## 1. Overview and design principles
 
-LeadAutomationPipeline is a single Python package (`leadpipe`) that runs an outbound sales pipeline 24/7:
+**Orbit** (by Indrix; GitHub repository `LeadAutomationPipeline`) is a single Python package (`leadpipe`, commands `leadpipe` and `orbit`) that runs an outbound sales pipeline 24/7:
 **find → research → score → write → send / task → read replies → move to the right follow-up track → onboard**.
 
 | Principle | What it means in the code |
